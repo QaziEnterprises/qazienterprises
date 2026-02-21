@@ -16,10 +16,17 @@ export function parseReceivablesXlsx(file: File): Promise<Receivable[]> {
           const row = json[i];
           if (row && row.length >= 3 && typeof row[0] === "number") {
             const balance = typeof row[2] === "number" ? row[2] : parseFloat(String(row[2]).replace(/,/g, "")) || 0;
+            const debit = row[3] != null ? (typeof row[3] === "number" ? row[3] : parseFloat(String(row[3]).replace(/,/g, "")) || 0) : 0;
+            const credit = row[4] != null ? (typeof row[4] === "number" ? row[4] : parseFloat(String(row[4]).replace(/,/g, "")) || 0) : 0;
             receivables.push({
               id: crypto.randomUUID(),
               sno: row[0],
               partyName: String(row[1] || "").trim(),
+              date: row[5] ? String(row[5]) : "",
+              refNo: row[6] ? String(row[6]) : "",
+              description: row[7] ? String(row[7]) : "",
+              debit,
+              credit,
               balance,
             });
           }

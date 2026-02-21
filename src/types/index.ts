@@ -10,6 +10,11 @@ export interface Receivable {
   id: string;
   sno: number;
   partyName: string;
+  date: string;
+  refNo: string;
+  description: string;
+  debit: number;
+  credit: number;
   balance: number;
 }
 
