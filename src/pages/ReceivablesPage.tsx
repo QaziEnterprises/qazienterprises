@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, Search, X, Users, ChevronRight } from "lucide-react";
+import { Upload, Search, X, Users, ChevronRight, Pencil, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Receivable, SaleEntry } from "@/types";
@@ -14,12 +14,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function ReceivablesPage() {
   const [items, setItems] = useState<Receivable[]>([]);
   const [sales, setSales] = useState<SaleEntry[]>([]);
   const [search, setSearch] = useState("");
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Receivable>>({});
+  const [dialogEditing, setDialogEditing] = useState(false);
+  const [dialogForm, setDialogForm] = useState<Partial<Receivable>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reload = () => {
@@ -53,6 +58,55 @@ export default function ReceivablesPage() {
       toast.error("Failed to parse Excel file");
     }
     e.target.value = "";
+  };
+
+  const startInlineEdit = (item: Receivable, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(item.id);
+    setEditForm({ ...item });
+  };
+
+  const saveInlineEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!editingId || !editForm) return;
+    const updated = items.map((i) =>
+      i.id === editingId ? { ...i, ...editForm, debit: Number(editForm.debit) || 0, credit: Number(editForm.credit) || 0, balance: Number(editForm.balance) || 0 } : i
+    );
+    saveReceivables(updated);
+    setItems(updated);
+    setEditingId(null);
+    toast.success("Entry updated");
+  };
+
+  const cancelInlineEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+  };
+
+  const deleteEntry = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = items.filter((i) => i.id !== id);
+    saveReceivables(updated);
+    setItems(updated);
+    toast.success("Entry deleted");
+  };
+
+  const startDialogEdit = () => {
+    if (!selectedReceivable) return;
+    setDialogEditing(true);
+    setDialogForm({ ...selectedReceivable });
+  };
+
+  const saveDialogEdit = () => {
+    if (!dialogForm.id) return;
+    const updated = items.map((i) =>
+      i.id === dialogForm.id ? { ...i, ...dialogForm, debit: Number(dialogForm.debit) || 0, credit: Number(dialogForm.credit) || 0, balance: Number(dialogForm.balance) || 0 } : i
+    );
+    saveReceivables(updated);
+    setItems(updated);
+    setDialogEditing(false);
+    setSelectedParty(dialogForm.partyName || selectedParty);
+    toast.success("Entry updated");
   };
 
   return (
@@ -102,7 +156,7 @@ export default function ReceivablesPage() {
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Debit</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Credit</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Balance</th>
-                <th className="px-4 py-3 w-10"></th>
+                <th className="px-4 py-3 w-28 text-center font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -113,21 +167,45 @@ export default function ReceivablesPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.01 }}
                   className="border-b last:border-0 transition-colors hover:bg-muted/30 cursor-pointer"
-                  onClick={() => setSelectedParty(item.partyName)}
+                  onClick={() => editingId !== item.id && setSelectedParty(item.partyName)}
                 >
                   <td className="px-4 py-3 text-muted-foreground">{item.sno}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{item.date || "—"}</td>
-                  <td className="px-4 py-3 font-medium text-primary hover:underline">{item.partyName}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{item.refNo || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{item.description || "—"}</td>
-                  <td className="px-4 py-3 text-right">{item.debit ? `Rs ${item.debit.toLocaleString()}` : "—"}</td>
-                  <td className="px-4 py-3 text-right">{item.credit ? `Rs ${item.credit.toLocaleString()}` : "—"}</td>
-                  <td className={`px-4 py-3 text-right font-medium ${item.balance < 0 ? "text-success" : item.balance > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                    Rs {item.balance.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </td>
+                  {editingId === item.id ? (
+                    <>
+                      <td className="px-2 py-1"><Input value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="h-8 text-xs" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input value={editForm.partyName || ""} onChange={(e) => setEditForm({ ...editForm, partyName: e.target.value })} className="h-8 text-xs" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input value={editForm.refNo || ""} onChange={(e) => setEditForm({ ...editForm, refNo: e.target.value })} className="h-8 text-xs" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input value={editForm.description || ""} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="h-8 text-xs" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input type="number" value={editForm.debit || 0} onChange={(e) => setEditForm({ ...editForm, debit: Number(e.target.value) })} className="h-8 text-xs text-right" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input type="number" value={editForm.credit || 0} onChange={(e) => setEditForm({ ...editForm, credit: Number(e.target.value) })} className="h-8 text-xs text-right" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1"><Input type="number" value={editForm.balance || 0} onChange={(e) => setEditForm({ ...editForm, balance: Number(e.target.value) })} className="h-8 text-xs text-right" onClick={(e) => e.stopPropagation()} /></td>
+                      <td className="px-2 py-1 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveInlineEdit}><Save className="h-3.5 w-3.5 text-success" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelInlineEdit}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{item.date || "—"}</td>
+                      <td className="px-4 py-3 font-medium text-primary hover:underline">{item.partyName}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.refNo || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.description || "—"}</td>
+                      <td className="px-4 py-3 text-right">{item.debit ? `Rs ${item.debit.toLocaleString()}` : "—"}</td>
+                      <td className="px-4 py-3 text-right">{item.credit ? `Rs ${item.credit.toLocaleString()}` : "—"}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${item.balance < 0 ? "text-success" : item.balance > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        Rs {item.balance.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => startInlineEdit(item, e)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => deleteEntry(item.id, e)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </motion.tr>
               ))}
             </tbody>
@@ -145,16 +223,22 @@ export default function ReceivablesPage() {
       )}
 
       {/* Customer Detail Dialog */}
-      <Dialog open={!!selectedParty} onOpenChange={(open) => !open && setSelectedParty(null)}>
+      <Dialog open={!!selectedParty} onOpenChange={(open) => { if (!open) { setSelectedParty(null); setDialogEditing(false); } }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedParty}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{selectedParty}</span>
+              {!dialogEditing && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={startDialogEdit}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
+            </DialogTitle>
             <DialogDescription>Full customer details and purchase history</DialogDescription>
           </DialogHeader>
 
-          {selectedReceivable && (
+          {selectedReceivable && !dialogEditing && (
             <div className="space-y-6">
-              {/* Summary Card */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-lg border p-4 text-center">
                   <p className="text-xs text-muted-foreground">Debit</p>
@@ -172,7 +256,6 @@ export default function ReceivablesPage() {
                 </div>
               </div>
 
-              {/* Receivable Info */}
               <div className="rounded-lg border p-4 space-y-2">
                 <h3 className="font-semibold text-sm">Receivable Info</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -182,11 +265,10 @@ export default function ReceivablesPage() {
                 </div>
               </div>
 
-              {/* Purchase History from Sales */}
               <div>
                 <h3 className="font-semibold text-sm mb-3">Purchase History ({partySales.length} entries)</h3>
                 {partySales.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No sales history found for this customer. Upload a Sales Excel to see purchase history.</p>
+                  <p className="text-sm text-muted-foreground">No sales history found. Upload a Sales Excel to see purchase history.</p>
                 ) : (
                   <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
@@ -217,6 +299,46 @@ export default function ReceivablesPage() {
                     </table>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Edit Form in Dialog */}
+          {dialogEditing && dialogForm && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Party Name</Label>
+                  <Input value={dialogForm.partyName || ""} onChange={(e) => setDialogForm({ ...dialogForm, partyName: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Date</Label>
+                  <Input value={dialogForm.date || ""} onChange={(e) => setDialogForm({ ...dialogForm, date: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Ref No.</Label>
+                  <Input value={dialogForm.refNo || ""} onChange={(e) => setDialogForm({ ...dialogForm, refNo: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Description</Label>
+                  <Input value={dialogForm.description || ""} onChange={(e) => setDialogForm({ ...dialogForm, description: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Debit</Label>
+                  <Input type="number" value={dialogForm.debit || 0} onChange={(e) => setDialogForm({ ...dialogForm, debit: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Credit</Label>
+                  <Input type="number" value={dialogForm.credit || 0} onChange={(e) => setDialogForm({ ...dialogForm, credit: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Balance</Label>
+                  <Input type="number" value={dialogForm.balance || 0} onChange={(e) => setDialogForm({ ...dialogForm, balance: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDialogEditing(false)}>Cancel</Button>
+                <Button onClick={saveDialogEdit} className="gap-1.5"><Save className="h-4 w-4" /> Save</Button>
               </div>
             </div>
           )}
