@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
-  const [form, setForm] = useState({ name: "", quantity: "", price: "" });
+  const [form, setForm] = useState({ name: "", quantity: "", price: "", alertThreshold: "" });
 
   const reload = () => setItems(getInventory());
   useEffect(reload, []);
@@ -30,13 +30,18 @@ export default function InventoryPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", quantity: "", price: "" });
+    setForm({ name: "", quantity: "", price: "", alertThreshold: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (item: InventoryItem) => {
     setEditing(item);
-    setForm({ name: item.name, quantity: String(item.quantity), price: String(item.price) });
+    setForm({
+      name: item.name,
+      quantity: String(item.quantity),
+      price: String(item.price),
+      alertThreshold: String((item as any).alertThreshold || ""),
+    });
     setDialogOpen(true);
   };
 
@@ -44,13 +49,14 @@ export default function InventoryPage() {
     const name = form.name.trim();
     const quantity = parseInt(form.quantity) || 0;
     const price = parseFloat(form.price) || 0;
+    const alertThreshold = parseInt(form.alertThreshold) || 0;
     if (!name) { toast.error("Item name is required"); return; }
 
     if (editing) {
-      updateInventoryItem(editing.id, { name, quantity, price });
+      updateInventoryItem(editing.id, { name, quantity, price, alertThreshold } as any);
       toast.success("Item updated");
     } else {
-      addInventoryItem({ name, quantity, price });
+      addInventoryItem({ name, quantity, price, alertThreshold } as any);
       toast.success("Item added");
     }
     setDialogOpen(false);
@@ -77,12 +83,7 @@ export default function InventoryPage() {
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search items..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Search items..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         {search && (
           <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
@@ -105,38 +106,55 @@ export default function InventoryPage() {
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Quantity</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Price</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Value</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">Alert</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               <AnimatePresence>
-                {filtered.map((item) => (
-                  <motion.tr
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="border-b last:border-0 transition-colors hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-3 font-medium">{item.name}</td>
-                    <td className="px-4 py-3 text-right">{item.quantity.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right">Rs {item.price.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      Rs {(item.quantity * item.price).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                {filtered.map((item) => {
+                  const threshold = (item as any).alertThreshold || 0;
+                  const isLow = threshold > 0 && item.quantity <= threshold;
+                  return (
+                    <motion.tr
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className={`border-b last:border-0 transition-colors hover:bg-muted/30 ${isLow ? "bg-destructive/5" : ""}`}
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          {item.name}
+                          {isLow && <Bell className="h-3.5 w-3.5 text-destructive animate-pulse" />}
+                        </div>
+                      </td>
+                      <td className={`px-4 py-3 text-right ${isLow ? "text-destructive font-bold" : ""}`}>{item.quantity.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">Rs {item.price.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-medium">Rs {(item.quantity * item.price).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-center">
+                        {threshold > 0 ? (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${isLow ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                            ≤ {threshold}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </AnimatePresence>
             </tbody>
           </table>
@@ -162,6 +180,18 @@ export default function InventoryPage() {
                 <Label>Price (Rs)</Label>
                 <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-warning" /> Low Stock Alert Threshold
+              </Label>
+              <Input
+                type="number"
+                value={form.alertThreshold}
+                onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
+                placeholder="Alert when quantity falls to this number (0 = no alert)"
+              />
+              <p className="text-xs text-muted-foreground">Set a number to get alerted when stock falls to or below this quantity</p>
             </div>
           </div>
           <DialogFooter>

@@ -3,6 +3,7 @@ export interface InventoryItem {
   name: string;
   quantity: number;
   price: number;
+  alertThreshold?: number;
   createdAt: string;
 }
 
