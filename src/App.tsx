@@ -11,6 +11,11 @@ import ReceivablesPage from "@/pages/ReceivablesPage";
 import SalesPage from "@/pages/SalesPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
+import ContactsPage from "@/pages/ContactsPage";
+import ProductsPage from "@/pages/ProductsPage";
+import PurchasesPage from "@/pages/PurchasesPage";
+import ExpensesPage from "@/pages/ExpensesPage";
+import POSPage from "@/pages/POSPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -44,6 +49,11 @@ function AppRoutes() {
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/receivables" element={<ProtectedRoute><ReceivablesPage /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute adminOnly><SalesPage /></ProtectedRoute>} />
+        <Route path="/contacts" element={<ProtectedRoute adminOnly><ContactsPage /></ProtectedRoute>} />
+        <Route path="/products-db" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
+        <Route path="/purchases" element={<ProtectedRoute adminOnly><PurchasesPage /></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute adminOnly><ExpensesPage /></ProtectedRoute>} />
+        <Route path="/pos" element={<ProtectedRoute adminOnly><POSPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
