@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const allNavItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard", adminOnly: true },
     { to: "/pos", icon: CreditCard, label: "POS", adminOnly: true },
+    { to: "/bills", icon: FileText, label: "Bills & Invoices", adminOnly: true },
     { to: "/contacts", icon: UserCircle, label: "Contacts", adminOnly: true },
     { to: "/products-db", icon: Boxes, label: "Products", adminOnly: true },
     { to: "/purchases", icon: ShoppingCart, label: "Purchases", adminOnly: true },
     { to: "/expenses", icon: Receipt, label: "Expenses", adminOnly: true },
+    { to: "/reports", icon: BarChart3, label: "Daily Reports", adminOnly: true },
     { to: "/inventory", icon: Package, label: "Inventory", adminOnly: false },
     { to: "/receivables", icon: Users, label: "Receivables", adminOnly: false },
     { to: "/sales", icon: FileSpreadsheet, label: "Sales Summary", adminOnly: true },

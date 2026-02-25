@@ -16,6 +16,8 @@ import ProductsPage from "@/pages/ProductsPage";
 import PurchasesPage from "@/pages/PurchasesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import POSPage from "@/pages/POSPage";
+import ReportsPage from "@/pages/ReportsPage";
+import BillsPage from "@/pages/BillsPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -54,6 +56,8 @@ function AppRoutes() {
         <Route path="/purchases" element={<ProtectedRoute adminOnly><PurchasesPage /></ProtectedRoute>} />
         <Route path="/expenses" element={<ProtectedRoute adminOnly><ExpensesPage /></ProtectedRoute>} />
         <Route path="/pos" element={<ProtectedRoute adminOnly><POSPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute adminOnly><ReportsPage /></ProtectedRoute>} />
+        <Route path="/bills" element={<ProtectedRoute adminOnly><BillsPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

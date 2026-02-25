@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, X, ShoppingCart, Trash2, Save, Eye } from "lucide-react";
+import { Plus, Search, X, ShoppingCart, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,23 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { NumberInput } from "@/components/NumberInput";
 
 interface Purchase {
-  id: string;
-  supplier_id: string | null;
-  date: string;
-  reference_no: string | null;
-  total: number;
-  discount: number;
-  payment_status: string;
-  payment_method: string;
-  notes: string | null;
-  created_at: string;
+  id: string; supplier_id: string | null; date: string; reference_no: string | null;
+  total: number; discount: number; payment_status: string; payment_method: string;
+  notes: string | null; created_at: string;
 }
 
 interface Supplier { id: string; name: string; }
 interface Product { id: string; name: string; purchase_price: number; quantity: number; }
-
 interface CartItem { product_id: string; product_name: string; quantity: number; unit_price: number; subtotal: number; }
 
 export default function PurchasesPage() {
@@ -36,7 +29,6 @@ export default function PurchasesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Form
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [refNo, setRefNo] = useState("");
@@ -85,13 +77,8 @@ export default function PurchasesPage() {
   const handleSave = async () => {
     if (cart.length === 0) { toast.error("Add at least one product"); return; }
     const { data: purchase, error } = await supabase.from("purchases").insert({
-      supplier_id: supplierId || null,
-      date,
-      reference_no: refNo || null,
-      total: cartTotal,
-      discount,
-      payment_status: paymentStatus,
-      payment_method: paymentMethod,
+      supplier_id: supplierId || null, date, reference_no: refNo || null,
+      total: cartTotal, discount, payment_status: paymentStatus, payment_method: paymentMethod,
     }).select().single();
 
     if (error || !purchase) { toast.error("Failed to create purchase"); return; }
@@ -102,21 +89,18 @@ export default function PurchasesPage() {
 
     // Update product stock
     for (const item of cart) {
-      await supabase.rpc("has_role", { _user_id: "00000000-0000-0000-0000-000000000000", _role: "admin" }); // dummy to satisfy TS
-      await supabase.from("products").update({ quantity: products.find((p) => p.id === item.product_id)!.quantity + item.quantity }).eq("id", item.product_id);
+      const prod = products.find((p) => p.id === item.product_id);
+      if (prod) {
+        await supabase.from("products").update({ quantity: prod.quantity + item.quantity }).eq("id", item.product_id);
+      }
     }
 
     toast.success("Purchase recorded");
-    setDialogOpen(false);
-    setCart([]);
-    setSupplierId("");
-    setRefNo("");
-    setDiscount(0);
+    setDialogOpen(false); setCart([]); setSupplierId(""); setRefNo(""); setDiscount(0);
     fetchData();
   };
 
   const getSupplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "Walk-in";
-
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
 
   return (
@@ -175,7 +159,7 @@ export default function PurchasesPage() {
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Select product" /></SelectTrigger>
                     <SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} — Rs {p.purchase_price}</SelectItem>)}</SelectContent>
                   </Select>
-                  <Input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} className="w-20" min={1} />
+                  <NumberInput value={qty} onValueChange={setQty} className="w-20" min={1} />
                   <Button onClick={addToCart} disabled={!selectedProduct}>Add</Button>
                 </div>
                 {cart.length > 0 && (
@@ -195,7 +179,7 @@ export default function PurchasesPage() {
                   </table>
                 )}
                 <div className="flex justify-between items-center">
-                  <div className="space-y-1"><Label className="text-xs">Discount</Label><Input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="w-32 h-8" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Discount</Label><NumberInput value={discount} onValueChange={setDiscount} className="w-32 h-8" /></div>
                   <div className="text-right"><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">Rs {cartTotal.toLocaleString()}</p></div>
                 </div>
               </div>
