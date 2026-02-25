@@ -7,13 +7,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { NumberInput } from "@/components/NumberInput";
 
 interface Product { id: string; name: string; selling_price: number; quantity: number; sku: string | null; }
 interface Customer { id: string; name: string; }
 interface CartItem { product_id: string; name: string; quantity: number; unit_price: number; subtotal: number; max_stock: number; }
+
+interface SaleInvoice {
+  invoice_no: string;
+  date: string;
+  customer_name: string;
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  payment_method: string;
+  payment_status: string;
+}
 
 export default function POSPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,7 +40,9 @@ export default function POSPage() {
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [notes, setNotes] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [lastInvoice, setLastInvoice] = useState<string | null>(null);
+  const [invoiceData, setInvoiceData] = useState<SaleInvoice | null>(null);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -93,7 +109,21 @@ export default function POSPage() {
       if (prod) await supabase.from("products").update({ quantity: prod.quantity - item.quantity }).eq("id", item.product_id);
     }
 
-    setLastInvoice(sale.invoice_no);
+    // Build invoice data
+    const customerName = customerId ? customers.find(c => c.id === customerId)?.name || "Walk-in Customer" : "Walk-in Customer";
+    setInvoiceData({
+      invoice_no: sale.invoice_no || "N/A",
+      date: sale.date,
+      customer_name: customerName,
+      items: [...cart],
+      subtotal,
+      discount,
+      total,
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+    });
+    setInvoiceDialogOpen(true);
+
     toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
     setCart([]);
     setDiscount(0);
@@ -101,9 +131,38 @@ export default function POSPage() {
     setCustomerId("");
     setProcessing(false);
 
-    // Refresh products
     const { data: prods } = await supabase.from("products").select("id, name, selling_price, quantity, sku").order("name");
     setProducts(prods || []);
+  };
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { toast.error("Please allow popups to print"); return; }
+    printWindow.document.write(`
+      <html><head><title>Invoice - ${invoiceData?.invoice_no}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; font-size: 12px; color: #222; }
+        .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+        .header h1 { font-size: 20px; margin-bottom: 2px; }
+        .header p { font-size: 11px; color: #555; }
+        .info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .text-right { text-align: right; }
+        .totals { margin-left: auto; width: 250px; }
+        .totals td { border: none; padding: 3px 8px; }
+        .totals .grand-total td { font-size: 16px; font-weight: 700; border-top: 2px solid #000; padding-top: 8px; }
+        .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      ${printRef.current.innerHTML}
+      <script>window.onload = function() { window.print(); window.close(); }</script>
+      </body></html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -136,6 +195,11 @@ export default function POSPage() {
               </div>
             </motion.button>
           ))}
+          {filteredProducts.length === 0 && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              {search ? "No products match your search." : "No products available. Add products first."}
+            </div>
+          )}
         </div>
       </div>
 
@@ -201,7 +265,7 @@ export default function POSPage() {
 
             <div className="flex items-center gap-2">
               <Label className="text-xs shrink-0">Discount:</Label>
-              <Input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="h-8 text-xs" />
+              <NumberInput value={discount} onValueChange={setDiscount} className="h-8 text-xs" />
             </div>
 
             <div className="space-y-1 text-sm">
@@ -214,13 +278,80 @@ export default function POSPage() {
             <Button className="w-full gap-2" size="lg" onClick={handleCheckout} disabled={cart.length === 0 || processing}>
               <CreditCard className="h-4 w-4" /> {processing ? "Processing..." : "Complete Sale"}
             </Button>
-
-            {lastInvoice && (
-              <p className="text-xs text-center text-muted-foreground">Last invoice: {lastInvoice}</p>
-            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Invoice Print Dialog */}
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              Invoice Preview
+              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
+                <Printer className="h-4 w-4" /> Print
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {invoiceData && (
+            <div ref={printRef}>
+              <div className="header">
+                <h1>Qazi Enterprises</h1>
+                <p>Your trusted business partner</p>
+              </div>
+              <div className="info" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 12 }}>
+                <div>
+                  <p><strong>Invoice:</strong> {invoiceData.invoice_no}</p>
+                  <p><strong>Customer:</strong> {invoiceData.customer_name}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p><strong>Date:</strong> {invoiceData.date}</p>
+                  <p><strong>Payment:</strong> {invoiceData.payment_method.toUpperCase()} ({invoiceData.payment_status})</p>
+                </div>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #000" }}>
+                    <th style={{ textAlign: "left", padding: "6px 4px" }}>#</th>
+                    <th style={{ textAlign: "left", padding: "6px 4px" }}>Product</th>
+                    <th style={{ textAlign: "right", padding: "6px 4px" }}>Qty</th>
+                    <th style={{ textAlign: "right", padding: "6px 4px" }}>Price</th>
+                    <th style={{ textAlign: "right", padding: "6px 4px" }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceData.items.map((item, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #ddd" }}>
+                      <td style={{ padding: "6px 4px" }}>{i + 1}</td>
+                      <td style={{ padding: "6px 4px" }}>{item.name}</td>
+                      <td style={{ textAlign: "right", padding: "6px 4px" }}>{item.quantity}</td>
+                      <td style={{ textAlign: "right", padding: "6px 4px" }}>Rs {item.unit_price.toLocaleString()}</td>
+                      <td style={{ textAlign: "right", padding: "6px 4px" }}>Rs {item.subtotal.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ marginLeft: "auto", width: 220, fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+                  <span>Subtotal:</span><span>Rs {invoiceData.subtotal.toLocaleString()}</span>
+                </div>
+                {invoiceData.discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "red" }}>
+                    <span>Discount:</span><span>-Rs {invoiceData.discount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 0", borderTop: "2px solid #000", fontWeight: 700, fontSize: 16 }}>
+                  <span>Total:</span><span>Rs {invoiceData.total.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="footer" style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#888", borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+                <p>Thank you for your business!</p>
+                <p>Qazi Enterprises — All rights reserved</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -9,19 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { NumberInput } from "@/components/NumberInput";
 
 interface Product {
-  id: string;
-  name: string;
-  sku: string | null;
-  category_id: string | null;
-  purchase_price: number;
-  selling_price: number;
-  quantity: number;
-  unit: string;
-  alert_threshold: number;
-  brand: string | null;
-  description: string | null;
+  id: string; name: string; sku: string | null; category_id: string | null;
+  purchase_price: number; selling_price: number; quantity: number; unit: string;
+  alert_threshold: number; brand: string | null; description: string | null;
 }
 
 interface Category { id: string; name: string; }
@@ -65,11 +58,11 @@ export default function ProductsPage() {
       name: form.name.trim(),
       sku: form.sku || null,
       category_id: form.category_id || null,
-      purchase_price: Number(form.purchase_price) || 0,
-      selling_price: Number(form.selling_price) || 0,
-      quantity: Number(form.quantity) || 0,
+      purchase_price: form.purchase_price || 0,
+      selling_price: form.selling_price || 0,
+      quantity: form.quantity || 0,
       unit: form.unit || "pcs",
-      alert_threshold: Number(form.alert_threshold) || 0,
+      alert_threshold: form.alert_threshold || 0,
       brand: form.brand || null,
       description: form.description || null,
     };
@@ -152,13 +145,13 @@ export default function ProductsPage() {
                   <div className="space-y-1"><Label>Brand</Label><Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} /></div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1"><Label>Purchase Price</Label><Input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: Number(e.target.value) })} /></div>
-                  <div className="space-y-1"><Label>Selling Price</Label><Input type="number" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: Number(e.target.value) })} /></div>
-                  <div className="space-y-1"><Label>Quantity</Label><Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} /></div>
+                  <div className="space-y-1"><Label>Purchase Price</Label><NumberInput value={form.purchase_price} onValueChange={(v) => setForm({ ...form, purchase_price: v })} /></div>
+                  <div className="space-y-1"><Label>Selling Price</Label><NumberInput value={form.selling_price} onValueChange={(v) => setForm({ ...form, selling_price: v })} /></div>
+                  <div className="space-y-1"><Label>Quantity</Label><NumberInput value={form.quantity} onValueChange={(v) => setForm({ ...form, quantity: v })} /></div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1"><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pcs, kg, etc." /></div>
-                  <div className="space-y-1"><Label>Alert Threshold</Label><Input type="number" value={form.alert_threshold} onChange={(e) => setForm({ ...form, alert_threshold: Number(e.target.value) })} /></div>
+                  <div className="space-y-1"><Label>Alert Threshold</Label><NumberInput value={form.alert_threshold} onValueChange={(v) => setForm({ ...form, alert_threshold: v })} /></div>
                 </div>
                 <Button onClick={handleSave} className="gap-2"><Save className="h-4 w-4" /> {editingId ? "Update" : "Save"}</Button>
               </div>
@@ -170,7 +163,7 @@ export default function ProductsPage() {
       {lowStock.length > 0 && (
         <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive" />
-          <span className="text-sm text-destructive font-medium">{lowStock.length} product(s) low on stock!</span>
+          <span className="text-sm text-destructive font-medium">{lowStock.length} product(s) low on stock: {lowStock.map(p => p.name).join(", ")}</span>
         </div>
       )}
 

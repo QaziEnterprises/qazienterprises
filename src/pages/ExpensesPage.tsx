@@ -9,15 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { NumberInput } from "@/components/NumberInput";
 
 interface Expense {
-  id: string;
-  category_id: string | null;
-  amount: number;
-  date: string;
-  description: string | null;
-  payment_method: string;
-  reference_no: string | null;
+  id: string; category_id: string | null; amount: number; date: string;
+  description: string | null; payment_method: string; reference_no: string | null;
 }
 
 interface Category { id: string; name: string; }
@@ -31,7 +27,6 @@ export default function ExpensesPage() {
   const [newCatName, setNewCatName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [form, setForm] = useState({ category_id: "", amount: 0, date: new Date().toISOString().split("T")[0], description: "", payment_method: "cash", reference_no: "" });
 
   const fetchData = async () => {
@@ -56,12 +51,9 @@ export default function ExpensesPage() {
   const handleSave = async () => {
     if (!form.amount) { toast.error("Amount is required"); return; }
     const payload = {
-      category_id: form.category_id || null,
-      amount: Number(form.amount),
-      date: form.date,
-      description: form.description || null,
-      payment_method: form.payment_method,
-      reference_no: form.reference_no || null,
+      category_id: form.category_id || null, amount: form.amount,
+      date: form.date, description: form.description || null,
+      payment_method: form.payment_method, reference_no: form.reference_no || null,
     };
 
     if (editingId) {
@@ -73,8 +65,7 @@ export default function ExpensesPage() {
       if (error) { toast.error("Failed to add expense"); return; }
       toast.success("Expense added");
     }
-    setDialogOpen(false);
-    setEditingId(null);
+    setDialogOpen(false); setEditingId(null);
     setForm({ category_id: "", amount: 0, date: new Date().toISOString().split("T")[0], description: "", payment_method: "cash", reference_no: "" });
     fetchData();
   };
@@ -88,18 +79,14 @@ export default function ExpensesPage() {
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
-    toast.success("Expense deleted");
-    fetchData();
+    toast.success("Expense deleted"); fetchData();
   };
 
   const addCategory = async () => {
     if (!newCatName.trim()) return;
     const { error } = await supabase.from("expense_categories").insert({ name: newCatName.trim() });
     if (error) { toast.error("Failed to add category"); return; }
-    toast.success("Category added");
-    setNewCatName("");
-    setCatDialogOpen(false);
-    fetchData();
+    toast.success("Category added"); setNewCatName(""); setCatDialogOpen(false); fetchData();
   };
 
   const getCategoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "Uncategorized";
@@ -122,13 +109,13 @@ export default function ExpensesPage() {
               </div>
             </DialogContent>
           </Dialog>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); } }}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingId(null); }}>
             <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Add Expense</Button></DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>{editingId ? "Edit Expense" : "Add Expense"}</DialogTitle></DialogHeader>
               <div className="grid gap-3 py-2">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1"><Label>Amount *</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} /></div>
+                  <div className="space-y-1"><Label>Amount *</Label><NumberInput value={form.amount} onValueChange={(v) => setForm({ ...form, amount: v })} /></div>
                   <div className="space-y-1"><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

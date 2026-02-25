@@ -13,6 +13,7 @@ import {
 } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { NumberInput } from "@/components/NumberInput";
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -174,11 +175,11 @@ export default function InventoryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Quantity</Label>
-                <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" />
+                <NumberInput value={parseInt(form.quantity) || 0} onValueChange={(v) => setForm({ ...form, quantity: String(v) })} placeholder="0" />
               </div>
               <div className="space-y-2">
                 <Label>Price (Rs)</Label>
-                <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" />
+                <NumberInput value={parseFloat(form.price) || 0} onValueChange={(v) => setForm({ ...form, price: String(v) })} placeholder="0" />
               </div>
             </div>
             <div className="space-y-2">
@@ -189,7 +190,7 @@ export default function InventoryPage() {
                 type="number"
                 value={form.alertThreshold}
                 onChange={(e) => setForm({ ...form, alertThreshold: e.target.value })}
-                placeholder="Alert when quantity falls to this number (0 = no alert)"
+                placeholder="0"
               />
               <p className="text-xs text-muted-foreground">Set a number to get alerted when stock falls to or below this quantity</p>
             </div>
