@@ -21,6 +21,7 @@ interface SaleInvoice {
   invoice_no: string;
   date: string;
   customer_name: string;
+  customer_type: string;
   items: CartItem[];
   subtotal: number;
   discount: number;
@@ -34,7 +35,8 @@ export default function POSPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState("walk-in");
+  const [customerType, setCustomerType] = useState("walk-in");
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentStatus, setPaymentStatus] = useState("paid");
@@ -45,7 +47,7 @@ export default function POSPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       const [{ data: prods }, { data: custs }] = await Promise.all([
         supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
         supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
@@ -53,7 +55,7 @@ export default function POSPage() {
       setProducts(prods || []);
       setCustomers(custs || []);
     };
-    fetch();
+    fetchData();
   }, []);
 
   const filteredProducts = products.filter((p) =>
@@ -82,59 +84,71 @@ export default function POSPage() {
   const removeFromCart = (productId: string) => setCart(cart.filter((c) => c.product_id !== productId));
 
   const subtotal = cart.reduce((s, c) => s + c.subtotal, 0);
-  const total = subtotal - discount;
+  const total = Math.max(0, subtotal - discount);
 
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.error("Cart is empty"); return; }
     setProcessing(true);
 
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const { data: sale, error } = await supabase.from("sale_transactions").insert({
-      customer_id: customerId || null,
-      subtotal,
-      discount,
-      total,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      notes: notes || null,
-      created_by: currentUser?.id || null,
-    }).select().single();
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const actualCustomerId = customerId === "walk-in" ? null : customerId;
+      
+      const { data: sale, error } = await supabase.from("sale_transactions").insert({
+        customer_id: actualCustomerId,
+        customer_type: customerType,
+        subtotal,
+        discount,
+        total,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+        notes: notes || null,
+        created_by: currentUser?.id || null,
+      }).select().single();
 
-    if (error || !sale) { toast.error("Failed to process sale"); setProcessing(false); return; }
+      if (error || !sale) { toast.error("Failed to process sale: " + (error?.message || "Unknown error")); setProcessing(false); return; }
 
-    const items = cart.map((c) => ({ sale_id: sale.id, product_id: c.product_id, product_name: c.name, quantity: c.quantity, unit_price: c.unit_price, subtotal: c.subtotal }));
-    await supabase.from("sale_items").insert(items);
+      const items = cart.map((c) => ({ sale_id: sale.id, product_id: c.product_id, product_name: c.name, quantity: c.quantity, unit_price: c.unit_price, subtotal: c.subtotal }));
+      const { error: itemsError } = await supabase.from("sale_items").insert(items);
+      if (itemsError) { toast.error("Failed to save sale items"); setProcessing(false); return; }
 
-    // Deduct stock atomically using current DB values
-    for (const item of cart) {
-      const { data: currentProd } = await supabase.from("products").select("quantity").eq("id", item.product_id).single();
-      if (currentProd) await supabase.from("products").update({ quantity: Math.max(0, Number(currentProd.quantity) - item.quantity) }).eq("id", item.product_id);
+      // Deduct stock
+      for (const item of cart) {
+        const { data: currentProd } = await supabase.from("products").select("quantity").eq("id", item.product_id).single();
+        if (currentProd) {
+          await supabase.from("products").update({ quantity: Math.max(0, Number(currentProd.quantity) - item.quantity) }).eq("id", item.product_id);
+        }
+      }
+
+      const customerName = actualCustomerId ? customers.find(c => c.id === actualCustomerId)?.name || "Walk-in Customer" : "Walk-in Customer";
+      setInvoiceData({
+        invoice_no: sale.invoice_no || "N/A",
+        date: sale.date,
+        customer_name: customerName,
+        customer_type: customerType,
+        items: [...cart],
+        subtotal,
+        discount,
+        total,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+      });
+      setInvoiceDialogOpen(true);
+
+      toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
+      setCart([]);
+      setDiscount(0);
+      setNotes("");
+      setCustomerId("walk-in");
+      setCustomerType("walk-in");
+
+      const { data: prods } = await supabase.from("products").select("id, name, selling_price, quantity, sku").order("name");
+      setProducts(prods || []);
+    } catch (err) {
+      toast.error("Checkout failed");
+    } finally {
+      setProcessing(false);
     }
-
-    // Build invoice data
-    const customerName = customerId ? customers.find(c => c.id === customerId)?.name || "Walk-in Customer" : "Walk-in Customer";
-    setInvoiceData({
-      invoice_no: sale.invoice_no || "N/A",
-      date: sale.date,
-      customer_name: customerName,
-      items: [...cart],
-      subtotal,
-      discount,
-      total,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-    });
-    setInvoiceDialogOpen(true);
-
-    toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
-    setCart([]);
-    setDiscount(0);
-    setNotes("");
-    setCustomerId("");
-    setProcessing(false);
-
-    const { data: prods } = await supabase.from("products").select("id, name, selling_price, quantity, sku").order("name");
-    setProducts(prods || []);
   };
 
   const handlePrint = () => {
@@ -142,7 +156,6 @@ export default function POSPage() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error("Please allow popups to print"); return; }
     const content = printRef.current.cloneNode(true) as HTMLElement;
-    // Sanitize: remove any script tags
     content.querySelectorAll("script").forEach((s) => s.remove());
     printWindow.document.write(`
       <html><head><title>Invoice - ${invoiceData?.invoice_no?.replace(/[<>"'&]/g, '')}</title>
@@ -172,7 +185,7 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-6rem)]">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-6rem)]">
       {/* Product List */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="mb-4">
@@ -210,7 +223,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart */}
-      <Card className="w-96 flex flex-col shrink-0">
+      <Card className="w-full lg:w-96 flex flex-col shrink-0">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
@@ -244,17 +257,39 @@ export default function POSPage() {
           <Separator className="mb-3" />
 
           <div className="space-y-3">
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Walk-in Customer" /></SelectTrigger>
-              <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
+            {/* Customer Type */}
+            <div className="flex gap-2">
+              <Select value={customerType} onValueChange={(val) => {
+                setCustomerType(val);
+                if (val === "walk-in") setCustomerId("walk-in");
+              }}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Customer Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk-in">Walk-in</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="wholesale">Wholesale</SelectItem>
+                  <SelectItem value="credit">Credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Customer Selection (shown for non-walk-in) */}
+            {customerType !== "walk-in" && (
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select Customer" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk-in">No specific customer</SelectItem>
+                  {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
 
             <div className="flex gap-2">
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="jazzcash">JazzCash</SelectItem>
                   <SelectItem value="easypaisa">EasyPaisa</SelectItem>
                 </SelectContent>
@@ -267,6 +302,11 @@ export default function POSPage() {
                   <SelectItem value="partial">Partial</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Notes (optional)</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sale notes..." className="h-8 text-xs mt-1" />
             </div>
 
             <div className="flex items-center gap-2">
@@ -301,18 +341,20 @@ export default function POSPage() {
           </DialogHeader>
           {invoiceData && (
             <div ref={printRef}>
-              <div className="header">
-                <h1>Qazi Enterprises</h1>
-                <p>Your trusted business partner</p>
+              <div style={{ textAlign: "center", marginBottom: 16, borderBottom: "2px solid #000", paddingBottom: 12 }}>
+                <h1 style={{ fontSize: 20 }}>Qazi Enterprises</h1>
+                <p style={{ fontSize: 11, color: "#555" }}>Your trusted business partner</p>
               </div>
-              <div className="info" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 12 }}>
                 <div>
                   <p><strong>Invoice:</strong> {invoiceData.invoice_no}</p>
                   <p><strong>Customer:</strong> {invoiceData.customer_name}</p>
+                  <p><strong>Type:</strong> {invoiceData.customer_type.charAt(0).toUpperCase() + invoiceData.customer_type.slice(1)}</p>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p><strong>Date:</strong> {invoiceData.date}</p>
-                  <p><strong>Payment:</strong> {invoiceData.payment_method.toUpperCase()} ({invoiceData.payment_status})</p>
+                  <p><strong>Payment:</strong> {invoiceData.payment_method.toUpperCase()}</p>
+                  <p><strong>Status:</strong> {invoiceData.payment_status.toUpperCase()}</p>
                 </div>
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 12 }}>
@@ -350,7 +392,7 @@ export default function POSPage() {
                   <span>Total:</span><span>Rs {invoiceData.total.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="footer" style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#888", borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+              <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#888", borderTop: "1px dashed #ccc", paddingTop: 8 }}>
                 <p>Thank you for your business!</p>
                 <p>Qazi Enterprises — All rights reserved</p>
               </div>
