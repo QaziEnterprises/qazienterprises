@@ -61,8 +61,10 @@ export default function BillsPage() {
     if (!printRef.current || !selectedSale) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const content = printRef.current.cloneNode(true) as HTMLElement;
+    content.querySelectorAll("script").forEach((s) => s.remove());
     printWindow.document.write(`
-      <html><head><title>Invoice - ${selectedSale.invoice_no}</title>
+      <html><head><title>Invoice - ${selectedSale.invoice_no?.replace(/[<>"'&]/g, '')}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; font-size: 12px; color: #222; }
@@ -75,11 +77,12 @@ export default function BillsPage() {
         th { background: #f5f5f5; }
         .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
         @media print { body { padding: 0; } }
-      </style></head><body>
-      ${printRef.current.innerHTML}
-      <script>window.onload = function() { window.print(); window.close(); }</script>
-      </body></html>
+      </style></head><body></body></html>
     `);
+    printWindow.document.body.appendChild(printWindow.document.adoptNode(content));
+    const s = printWindow.document.createElement("script");
+    s.textContent = "window.onload = function() { window.print(); window.close(); }";
+    printWindow.document.body.appendChild(s);
     printWindow.document.close();
   };
 

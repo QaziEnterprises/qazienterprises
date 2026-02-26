@@ -88,6 +88,7 @@ export default function POSPage() {
     if (cart.length === 0) { toast.error("Cart is empty"); return; }
     setProcessing(true);
 
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
     const { data: sale, error } = await supabase.from("sale_transactions").insert({
       customer_id: customerId || null,
       subtotal,
@@ -96,6 +97,7 @@ export default function POSPage() {
       payment_method: paymentMethod,
       payment_status: paymentStatus,
       notes: notes || null,
+      created_by: currentUser?.id || null,
     }).select().single();
 
     if (error || !sale) { toast.error("Failed to process sale"); setProcessing(false); return; }
@@ -103,10 +105,10 @@ export default function POSPage() {
     const items = cart.map((c) => ({ sale_id: sale.id, product_id: c.product_id, product_name: c.name, quantity: c.quantity, unit_price: c.unit_price, subtotal: c.subtotal }));
     await supabase.from("sale_items").insert(items);
 
-    // Deduct stock
+    // Deduct stock atomically using current DB values
     for (const item of cart) {
-      const prod = products.find((p) => p.id === item.product_id);
-      if (prod) await supabase.from("products").update({ quantity: prod.quantity - item.quantity }).eq("id", item.product_id);
+      const { data: currentProd } = await supabase.from("products").select("quantity").eq("id", item.product_id).single();
+      if (currentProd) await supabase.from("products").update({ quantity: Math.max(0, Number(currentProd.quantity) - item.quantity) }).eq("id", item.product_id);
     }
 
     // Build invoice data
@@ -139,8 +141,11 @@ export default function POSPage() {
     if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error("Please allow popups to print"); return; }
+    const content = printRef.current.cloneNode(true) as HTMLElement;
+    // Sanitize: remove any script tags
+    content.querySelectorAll("script").forEach((s) => s.remove());
     printWindow.document.write(`
-      <html><head><title>Invoice - ${invoiceData?.invoice_no}</title>
+      <html><head><title>Invoice - ${invoiceData?.invoice_no?.replace(/[<>"'&]/g, '')}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; font-size: 12px; color: #222; }
@@ -157,11 +162,12 @@ export default function POSPage() {
         .totals .grand-total td { font-size: 16px; font-weight: 700; border-top: 2px solid #000; padding-top: 8px; }
         .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
         @media print { body { padding: 0; } }
-      </style></head><body>
-      ${printRef.current.innerHTML}
-      <script>window.onload = function() { window.print(); window.close(); }</script>
-      </body></html>
+      </style></head><body></body></html>
     `);
+    printWindow.document.body.appendChild(printWindow.document.adoptNode(content));
+    const s = printWindow.document.createElement("script");
+    s.textContent = "window.onload = function() { window.print(); window.close(); }";
+    printWindow.document.body.appendChild(s);
     printWindow.document.close();
   };
 
