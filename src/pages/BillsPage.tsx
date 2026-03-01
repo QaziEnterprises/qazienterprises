@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 
 interface SaleTransaction {
   id: string; invoice_no: string | null; date: string; customer_id: string | null;
   subtotal: number; discount: number; total: number; payment_method: string;
-  payment_status: string; notes: string | null; customer_type: string | null;
+  payment_status: string; notes: string | null;
 }
 
 interface SaleItem {
@@ -24,8 +23,6 @@ export default function BillsPage() {
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState<SaleTransaction | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -39,7 +36,7 @@ export default function BillsPage() {
         supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, name").eq("type", "customer"),
       ]);
-      setSales((s || []) as SaleTransaction[]);
+      setSales(s || []);
       setCustomers(c || []);
       setLoading(false);
     };
@@ -48,13 +45,10 @@ export default function BillsPage() {
 
   const getCustomerName = (id: string | null) => customers.find((c) => c.id === id)?.name || "Walk-in Customer";
 
-  const filtered = sales.filter((s) => {
-    const matchesSearch = s.invoice_no?.toLowerCase().includes(search.toLowerCase()) ||
-      getCustomerName(s.customer_id).toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || s.payment_status === statusFilter;
-    const matchesType = typeFilter === "all" || (s.customer_type || "walk-in") === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  const filtered = sales.filter((s) =>
+    s.invoice_no?.toLowerCase().includes(search.toLowerCase()) ||
+    getCustomerName(s.customer_id).toLowerCase().includes(search.toLowerCase())
+  );
 
   const viewBill = async (sale: SaleTransaction) => {
     setSelectedSale(sale);
@@ -93,48 +87,18 @@ export default function BillsPage() {
   };
 
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
-  const typeLabel = (t: string | null) => {
-    const labels: Record<string, string> = { "walk-in": "Walk-in", "regular": "Regular", "wholesale": "Wholesale", "credit": "Credit" };
-    return labels[t || "walk-in"] || "Walk-in";
-  };
-
-  const totalAmount = filtered.reduce((sum, s) => sum + Number(s.total || 0), 0);
-  const paidAmount = filtered.filter(s => s.payment_status === "paid").reduce((sum, s) => sum + Number(s.total || 0), 0);
-  const dueAmount = filtered.filter(s => s.payment_status !== "paid").reduce((sum, s) => sum + Number(s.total || 0), 0);
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Bills & Invoices</h1>
-        <p className="text-sm text-muted-foreground">{sales.length} total invoices — Total: Rs {totalAmount.toLocaleString()} | Paid: Rs {paidAmount.toLocaleString()} | Due: Rs {dueAmount.toLocaleString()}</p>
+        <p className="text-sm text-muted-foreground">{sales.length} total invoices</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search by invoice or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-          {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="due">Due</SelectItem>
-            <SelectItem value="partial">Partial</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="walk-in">Walk-in</SelectItem>
-            <SelectItem value="regular">Regular</SelectItem>
-            <SelectItem value="wholesale">Wholesale</SelectItem>
-            <SelectItem value="credit">Credit</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="relative mb-4 max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search by invoice or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
       </div>
 
       {loading ? (
@@ -152,7 +116,6 @@ export default function BillsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Invoice</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Payment</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
@@ -165,7 +128,6 @@ export default function BillsPage() {
                   <td className="px-4 py-3 font-medium">{s.invoice_no || "—"}</td>
                   <td className="px-4 py-3">{s.date}</td>
                   <td className="px-4 py-3">{getCustomerName(s.customer_id)}</td>
-                  <td className="px-4 py-3"><Badge variant="outline" className="text-xs">{typeLabel(s.customer_type)}</Badge></td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{s.payment_method}</td>
                   <td className="px-4 py-3"><Badge variant={statusColor(s.payment_status)}>{s.payment_status}</Badge></td>
                   <td className="px-4 py-3 text-right font-bold">Rs {Number(s.total).toLocaleString()}</td>
@@ -177,13 +139,6 @@ export default function BillsPage() {
                 </motion.tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t bg-muted/50 font-bold">
-                <td colSpan={6} className="px-4 py-3">Total ({filtered.length} invoices)</td>
-                <td className="px-4 py-3 text-right">Rs {totalAmount.toLocaleString()}</td>
-                <td></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       )}
@@ -201,7 +156,7 @@ export default function BillsPage() {
           </DialogHeader>
           {selectedSale && (
             <div ref={printRef}>
-              <div style={{ textAlign: "center", marginBottom: 16, borderBottom: "2px solid #000", paddingBottom: 12 }}>
+              <div className="header" style={{ textAlign: "center", marginBottom: 16, borderBottom: "2px solid #000", paddingBottom: 12 }}>
                 <h1 style={{ fontSize: 20 }}>Qazi Enterprises</h1>
                 <p style={{ fontSize: 11, color: "#555" }}>Your trusted business partner</p>
               </div>
@@ -209,12 +164,10 @@ export default function BillsPage() {
                 <div>
                   <p><strong>Invoice:</strong> {selectedSale.invoice_no}</p>
                   <p><strong>Customer:</strong> {getCustomerName(selectedSale.customer_id)}</p>
-                  <p><strong>Type:</strong> {typeLabel(selectedSale.customer_type)}</p>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p><strong>Date:</strong> {selectedSale.date}</p>
-                  <p><strong>Payment:</strong> {selectedSale.payment_method.toUpperCase()}</p>
-                  <p><strong>Status:</strong> {selectedSale.payment_status.toUpperCase()}</p>
+                  <p><strong>Payment:</strong> {selectedSale.payment_method.toUpperCase()} ({selectedSale.payment_status})</p>
                 </div>
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: 12 }}>
