@@ -18,32 +18,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole((data?.role as "admin" | "user") || "user");
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      setRole((data?.role as "admin" | "user") || "user");
+    } catch (err) {
+      console.error("fetchRole error:", err);
+      setRole("user");
+    }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchRole(currentUser.id);
-      } else {
-        setRole(null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchRole(currentUser.id);
+        } else {
+          setRole(null);
+        }
+      } catch (err) {
+        console.error("onAuthStateChange error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchRole(currentUser.id);
+      try {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchRole(currentUser.id);
+        }
+      } catch (err) {
+        console.error("getSession error:", err);
+      } finally {
+        setLoading(false);
       }
+    }).catch((err) => {
+      console.error("getSession promise error:", err);
       setLoading(false);
     });
 
