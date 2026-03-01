@@ -89,7 +89,6 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
     toast.success("Product deleted");

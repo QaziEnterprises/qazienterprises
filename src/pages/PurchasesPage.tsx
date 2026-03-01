@@ -76,11 +76,9 @@ export default function PurchasesPage() {
 
   const handleSave = async () => {
     if (cart.length === 0) { toast.error("Add at least one product"); return; }
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
     const { data: purchase, error } = await supabase.from("purchases").insert({
       supplier_id: supplierId || null, date, reference_no: refNo || null,
       total: cartTotal, discount, payment_status: paymentStatus, payment_method: paymentMethod,
-      created_by: currentUser?.id || null,
     }).select().single();
 
     if (error || !purchase) { toast.error("Failed to create purchase"); return; }
@@ -89,11 +87,11 @@ export default function PurchasesPage() {
     const { error: itemsErr } = await supabase.from("purchase_items").insert(items);
     if (itemsErr) { toast.error("Failed to save items"); return; }
 
-    // Update product stock atomically
+    // Update product stock
     for (const item of cart) {
-      const { data: currentProd } = await supabase.from("products").select("quantity").eq("id", item.product_id).single();
-      if (currentProd) {
-        await supabase.from("products").update({ quantity: Number(currentProd.quantity) + item.quantity }).eq("id", item.product_id);
+      const prod = products.find((p) => p.id === item.product_id);
+      if (prod) {
+        await supabase.from("products").update({ quantity: prod.quantity + item.quantity }).eq("id", item.product_id);
       }
     }
 

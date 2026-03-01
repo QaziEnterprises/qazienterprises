@@ -72,7 +72,12 @@ export default function AdminPage() {
   };
 
   const removeUser = async (userId: string, email: string) => {
-    if (!window.confirm(`Are you sure you want to delete user "${email}"? This cannot be undone.`)) return;
+    // Don't allow removing admin users
+    const adminEmails = ["muazbinshafi@gmail.com", "imrankhalilqazi@gmail.com"];
+    if (adminEmails.includes(email)) {
+      toast.error("Cannot remove admin users");
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke("manage-users", {
         body: { action: "delete", userId },
