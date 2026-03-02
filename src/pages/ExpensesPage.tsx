@@ -50,12 +50,10 @@ export default function ExpensesPage() {
 
   const handleSave = async () => {
     if (!form.amount) { toast.error("Amount is required"); return; }
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
     const payload = {
       category_id: form.category_id || null, amount: form.amount,
       date: form.date, description: form.description || null,
       payment_method: form.payment_method, reference_no: form.reference_no || null,
-      ...(editingId ? {} : { created_by: currentUser?.id || null }),
     };
 
     if (editingId) {
@@ -79,7 +77,6 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this expense?")) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
     toast.success("Expense deleted"); fetchData();

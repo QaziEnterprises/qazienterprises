@@ -3,17 +3,14 @@ import { Search, X, Printer, Eye, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 interface SaleTransaction {
   id: string; invoice_no: string | null; date: string; customer_id: string | null;
   subtotal: number; discount: number; total: number; payment_method: string;
-  payment_status: string; customer_type: string | null; notes: string | null;
+  payment_status: string; notes: string | null;
 }
 
 interface SaleItem {
@@ -26,7 +23,6 @@ export default function BillsPage() {
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState<SaleTransaction | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -36,46 +32,28 @@ export default function BillsPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      try {
-        const [{ data: s }, { data: c }] = await Promise.all([
-          supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
-          supabase.from("contacts").select("id, name").eq("type", "customer"),
-        ]);
-        setSales(s || []);
-        setCustomers(c || []);
-      } catch (err) {
-        console.error("Failed to load bills:", err);
-        toast.error("Failed to load bills");
-      } finally {
-        setLoading(false);
-      }
+      const [{ data: s }, { data: c }] = await Promise.all([
+        supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, name").eq("type", "customer"),
+      ]);
+      setSales(s || []);
+      setCustomers(c || []);
+      setLoading(false);
     };
     fetchData();
   }, []);
 
   const getCustomerName = (id: string | null) => customers.find((c) => c.id === id)?.name || "Walk-in Customer";
 
-  const filteredByStatus = statusFilter === "all" ? sales : sales.filter((s) => s.payment_status === statusFilter);
-  const filtered = filteredByStatus.filter((s) =>
+  const filtered = sales.filter((s) =>
     s.invoice_no?.toLowerCase().includes(search.toLowerCase()) ||
     getCustomerName(s.customer_id).toLowerCase().includes(search.toLowerCase())
   );
 
-  // Summary stats
-  const totalBilled = sales.reduce((s, t) => s + Number(t.total), 0);
-  const totalPaid = sales.filter(s => s.payment_status === "paid").reduce((s, t) => s + Number(t.total), 0);
-  const totalDue = sales.filter(s => s.payment_status === "due").reduce((s, t) => s + Number(t.total), 0);
-  const totalPartial = sales.filter(s => s.payment_status === "partial").reduce((s, t) => s + Number(t.total), 0);
-
   const viewBill = async (sale: SaleTransaction) => {
     setSelectedSale(sale);
-    try {
-      const { data } = await supabase.from("sale_items").select("*").eq("sale_id", sale.id);
-      setSaleItems(data || []);
-    } catch (err) {
-      console.error("Failed to load sale items:", err);
-      toast.error("Failed to load invoice details");
-    }
+    const { data } = await supabase.from("sale_items").select("*").eq("sale_id", sale.id);
+    setSaleItems(data || []);
     setDialogOpen(true);
   };
 
@@ -83,27 +61,25 @@ export default function BillsPage() {
     if (!printRef.current || !selectedSale) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    const content = printRef.current.cloneNode(true) as HTMLElement;
-    content.querySelectorAll("script").forEach((s) => s.remove());
     printWindow.document.write(`
-      <html><head><title>Invoice - ${selectedSale.invoice_no?.replace(/[<>"'&]/g, '')}</title>
+      <html><head><title>Invoice - ${selectedSale.invoice_no}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; font-size: 12px; color: #222; }
         .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 12px; }
         .header h1 { font-size: 20px; }
         .header p { font-size: 11px; color: #555; }
+        .info { display: flex; justify-content: space-between; margin-bottom: 12px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
         th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
         th { background: #f5f5f5; }
         .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
         @media print { body { padding: 0; } }
-      </style></head><body></body></html>
+      </style></head><body>
+      ${printRef.current.innerHTML}
+      <script>window.onload = function() { window.print(); window.close(); }</script>
+      </body></html>
     `);
-    printWindow.document.body.appendChild(printWindow.document.adoptNode(content));
-    const s = printWindow.document.createElement("script");
-    s.textContent = "window.onload = function() { window.print(); window.close(); }";
-    printWindow.document.body.appendChild(s);
     printWindow.document.close();
   };
 
@@ -115,24 +91,6 @@ export default function BillsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Bills & Invoices</h1>
         <p className="text-sm text-muted-foreground">{sales.length} total invoices</p>
       </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Billed</p><p className="text-lg font-bold">Rs {totalBilled.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Paid</p><p className="text-lg font-bold text-accent">Rs {totalPaid.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Due</p><p className="text-lg font-bold text-destructive">Rs {totalDue.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Partial</p><p className="text-lg font-bold text-muted-foreground">Rs {totalPartial.toLocaleString()}</p></CardContent></Card>
-      </div>
-
-      {/* Status Filter Tabs */}
-      <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="all">All ({sales.length})</TabsTrigger>
-          <TabsTrigger value="paid">Paid ({sales.filter(s => s.payment_status === "paid").length})</TabsTrigger>
-          <TabsTrigger value="due">Due ({sales.filter(s => s.payment_status === "due").length})</TabsTrigger>
-          <TabsTrigger value="partial">Partial ({sales.filter(s => s.payment_status === "partial").length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -155,7 +113,6 @@ export default function BillsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Invoice</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Payment</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
@@ -168,7 +125,6 @@ export default function BillsPage() {
                   <td className="px-4 py-3 font-medium">{s.invoice_no || "—"}</td>
                   <td className="px-4 py-3">{s.date}</td>
                   <td className="px-4 py-3">{getCustomerName(s.customer_id)}</td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">{s.customer_type || "walk-in"}</td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{s.payment_method}</td>
                   <td className="px-4 py-3"><Badge variant={statusColor(s.payment_status)}>{s.payment_status}</Badge></td>
                   <td className="px-4 py-3 text-right font-bold">Rs {Number(s.total).toLocaleString()}</td>
@@ -205,7 +161,6 @@ export default function BillsPage() {
                 <div>
                   <p><strong>Invoice:</strong> {selectedSale.invoice_no}</p>
                   <p><strong>Customer:</strong> {getCustomerName(selectedSale.customer_id)}</p>
-                  <p><strong>Type:</strong> {(selectedSale.customer_type || "walk-in").charAt(0).toUpperCase() + (selectedSale.customer_type || "walk-in").slice(1)}</p>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p><strong>Date:</strong> {selectedSale.date}</p>

@@ -21,7 +21,6 @@ interface SaleInvoice {
   invoice_no: string;
   date: string;
   customer_name: string;
-  customer_type: string;
   items: CartItem[];
   subtotal: number;
   discount: number;
@@ -36,7 +35,6 @@ export default function POSPage() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState("");
-  const [customerType, setCustomerType] = useState("walk-in");
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentStatus, setPaymentStatus] = useState("paid");
@@ -47,20 +45,15 @@ export default function POSPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [{ data: prods }, { data: custs }] = await Promise.all([
-          supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
-          supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
-        ]);
-        setProducts(prods || []);
-        setCustomers(custs || []);
-      } catch (err) {
-        console.error("Failed to load POS data:", err);
-        toast.error("Failed to load products");
-      }
+    const fetch = async () => {
+      const [{ data: prods }, { data: custs }] = await Promise.all([
+        supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
+        supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
+      ]);
+      setProducts(prods || []);
+      setCustomers(custs || []);
     };
-    fetchData();
+    fetch();
   }, []);
 
   const filteredProducts = products.filter((p) =>
@@ -95,70 +88,59 @@ export default function POSPage() {
     if (cart.length === 0) { toast.error("Cart is empty"); return; }
     setProcessing(true);
 
-    try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { data: sale, error } = await supabase.from("sale_transactions").insert({
-        customer_id: customerId || null,
-        customer_type: customerType,
-        subtotal,
-        discount,
-        total,
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-        notes: notes || null,
-        created_by: currentUser?.id || null,
-      }).select().single();
+    const { data: sale, error } = await supabase.from("sale_transactions").insert({
+      customer_id: customerId || null,
+      subtotal,
+      discount,
+      total,
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      notes: notes || null,
+    }).select().single();
 
-      if (error || !sale) { toast.error("Failed to process sale"); return; }
+    if (error || !sale) { toast.error("Failed to process sale"); setProcessing(false); return; }
 
-      const items = cart.map((c) => ({ sale_id: sale.id, product_id: c.product_id, product_name: c.name, quantity: c.quantity, unit_price: c.unit_price, subtotal: c.subtotal }));
-      const { error: itemsErr } = await supabase.from("sale_items").insert(items);
-      if (itemsErr) { toast.error("Failed to save sale items"); return; }
+    const items = cart.map((c) => ({ sale_id: sale.id, product_id: c.product_id, product_name: c.name, quantity: c.quantity, unit_price: c.unit_price, subtotal: c.subtotal }));
+    await supabase.from("sale_items").insert(items);
 
-      // Deduct stock
-      for (const item of cart) {
-        const { data: currentProd } = await supabase.from("products").select("quantity").eq("id", item.product_id).single();
-        if (currentProd) await supabase.from("products").update({ quantity: Math.max(0, Number(currentProd.quantity) - item.quantity) }).eq("id", item.product_id);
-      }
-
-      const customerName = customerId ? customers.find(c => c.id === customerId)?.name || "Walk-in Customer" : "Walk-in Customer";
-      setInvoiceData({
-        invoice_no: sale.invoice_no || "N/A",
-        date: sale.date,
-        customer_name: customerName,
-        customer_type: customerType,
-        items: [...cart],
-        subtotal, discount, total,
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-      });
-      setInvoiceDialogOpen(true);
-
-      toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
-      setCart([]);
-      setDiscount(0);
-      setNotes("");
-      setCustomerId("");
-      setCustomerType("walk-in");
-
-      const { data: prods } = await supabase.from("products").select("id, name, selling_price, quantity, sku").order("name");
-      setProducts(prods || []);
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error("An unexpected error occurred during checkout");
-    } finally {
-      setProcessing(false);
+    // Deduct stock
+    for (const item of cart) {
+      const prod = products.find((p) => p.id === item.product_id);
+      if (prod) await supabase.from("products").update({ quantity: prod.quantity - item.quantity }).eq("id", item.product_id);
     }
+
+    // Build invoice data
+    const customerName = customerId ? customers.find(c => c.id === customerId)?.name || "Walk-in Customer" : "Walk-in Customer";
+    setInvoiceData({
+      invoice_no: sale.invoice_no || "N/A",
+      date: sale.date,
+      customer_name: customerName,
+      items: [...cart],
+      subtotal,
+      discount,
+      total,
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+    });
+    setInvoiceDialogOpen(true);
+
+    toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
+    setCart([]);
+    setDiscount(0);
+    setNotes("");
+    setCustomerId("");
+    setProcessing(false);
+
+    const { data: prods } = await supabase.from("products").select("id, name, selling_price, quantity, sku").order("name");
+    setProducts(prods || []);
   };
 
   const handlePrint = () => {
     if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error("Please allow popups to print"); return; }
-    const content = printRef.current.cloneNode(true) as HTMLElement;
-    content.querySelectorAll("script").forEach((s) => s.remove());
     printWindow.document.write(`
-      <html><head><title>Invoice - ${invoiceData?.invoice_no?.replace(/[<>"'&]/g, '')}</title>
+      <html><head><title>Invoice - ${invoiceData?.invoice_no}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; font-size: 12px; color: #222; }
@@ -170,14 +152,16 @@ export default function POSPage() {
         th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
         th { background: #f5f5f5; font-weight: 600; }
         .text-right { text-align: right; }
+        .totals { margin-left: auto; width: 250px; }
+        .totals td { border: none; padding: 3px 8px; }
+        .totals .grand-total td { font-size: 16px; font-weight: 700; border-top: 2px solid #000; padding-top: 8px; }
         .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
         @media print { body { padding: 0; } }
-      </style></head><body></body></html>
+      </style></head><body>
+      ${printRef.current.innerHTML}
+      <script>window.onload = function() { window.print(); window.close(); }</script>
+      </body></html>
     `);
-    printWindow.document.body.appendChild(printWindow.document.adoptNode(content));
-    const s = printWindow.document.createElement("script");
-    s.textContent = "window.onload = function() { window.print(); window.close(); }";
-    printWindow.document.body.appendChild(s);
     printWindow.document.close();
   };
 
@@ -254,24 +238,10 @@ export default function POSPage() {
           <Separator className="mb-3" />
 
           <div className="space-y-3">
-            {/* Customer Type */}
-            <Select value={customerType} onValueChange={(v) => { setCustomerType(v); if (v === "walk-in") setCustomerId(""); }}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Customer Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="walk-in">Walk-in</SelectItem>
-                <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="wholesale">Wholesale</SelectItem>
-                <SelectItem value="credit">Credit</SelectItem>
-              </SelectContent>
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Walk-in Customer" /></SelectTrigger>
+              <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
-
-            {/* Customer Selection (shown for non-walk-in) */}
-            {customerType !== "walk-in" && (
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select Customer" /></SelectTrigger>
-                <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
 
             <div className="flex gap-2">
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -297,9 +267,6 @@ export default function POSPage() {
               <Label className="text-xs shrink-0">Discount:</Label>
               <NumberInput value={discount} onValueChange={setDiscount} className="h-8 text-xs" />
             </div>
-
-            {/* Notes */}
-            <Input placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} className="h-8 text-xs" />
 
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>Rs {subtotal.toLocaleString()}</span></div>
@@ -328,15 +295,14 @@ export default function POSPage() {
           </DialogHeader>
           {invoiceData && (
             <div ref={printRef}>
-              <div className="header" style={{ textAlign: "center", marginBottom: 16, borderBottom: "2px solid #000", paddingBottom: 12 }}>
-                <h1 style={{ fontSize: 20 }}>Qazi Enterprises</h1>
-                <p style={{ fontSize: 11, color: "#555" }}>Your trusted business partner</p>
+              <div className="header">
+                <h1>Qazi Enterprises</h1>
+                <p>Your trusted business partner</p>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 12 }}>
+              <div className="info" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 12 }}>
                 <div>
                   <p><strong>Invoice:</strong> {invoiceData.invoice_no}</p>
                   <p><strong>Customer:</strong> {invoiceData.customer_name}</p>
-                  <p><strong>Type:</strong> {invoiceData.customer_type.charAt(0).toUpperCase() + invoiceData.customer_type.slice(1)}</p>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p><strong>Date:</strong> {invoiceData.date}</p>
@@ -378,7 +344,7 @@ export default function POSPage() {
                   <span>Total:</span><span>Rs {invoiceData.total.toLocaleString()}</span>
                 </div>
               </div>
-              <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#888", borderTop: "1px dashed #ccc", paddingTop: 8 }}>
+              <div className="footer" style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#888", borderTop: "1px dashed #ccc", paddingTop: 8 }}>
                 <p>Thank you for your business!</p>
                 <p>Qazi Enterprises — All rights reserved</p>
               </div>
