@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, X, Users, Truck, Pencil, Trash2, Save, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Search, X, Users, Truck, Pencil, Trash2, Save } from "lucide-react";
+import { NumberInput } from "@/components/NumberInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,7 +127,7 @@ export default function ContactsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>City</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-                <div className="space-y-1"><Label>Opening Balance</Label><Input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: Number(e.target.value) })} /></div>
+                <div className="space-y-1"><Label>Opening Balance</Label><NumberInput value={form.opening_balance} onValueChange={(v) => setForm({ ...form, opening_balance: v })} /></div>
               </div>
               <div className="space-y-1"><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
               <div className="space-y-1"><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
