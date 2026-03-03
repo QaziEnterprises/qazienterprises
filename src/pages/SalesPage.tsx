@@ -8,6 +8,7 @@ import { getSales, saveSales } from "@/lib/store";
 import { parseSalesXlsx, exportSalesXlsx } from "@/lib/excel";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { NumberInput } from "@/components/NumberInput";
 
 export default function SalesPage() {
   const [items, setItems] = useState<SaleEntry[]>([]);
@@ -173,23 +174,23 @@ export default function SalesPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Cash</Label>
-              <Input type="number" value={newForm.cash || 0} onChange={(e) => setNewForm({ ...newForm, cash: Number(e.target.value) })} />
+              <NumberInput value={newForm.cash || 0} onValueChange={(v) => setNewForm({ ...newForm, cash: v })} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">J.C</Label>
-              <Input type="number" value={newForm.jc || 0} onChange={(e) => setNewForm({ ...newForm, jc: Number(e.target.value) })} />
+              <NumberInput value={newForm.jc || 0} onValueChange={(v) => setNewForm({ ...newForm, jc: v })} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">E.P</Label>
-              <Input type="number" value={newForm.ep || 0} onChange={(e) => setNewForm({ ...newForm, ep: Number(e.target.value) })} />
+              <NumberInput value={newForm.ep || 0} onValueChange={(v) => setNewForm({ ...newForm, ep: v })} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">B.T</Label>
-              <Input type="number" value={newForm.bt || 0} onChange={(e) => setNewForm({ ...newForm, bt: Number(e.target.value) })} />
+              <NumberInput value={newForm.bt || 0} onValueChange={(v) => setNewForm({ ...newForm, bt: v })} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Not Paid</Label>
-              <Input type="number" value={newForm.notPaid || 0} onChange={(e) => setNewForm({ ...newForm, notPaid: Number(e.target.value) })} />
+              <NumberInput value={newForm.notPaid || 0} onValueChange={(v) => setNewForm({ ...newForm, notPaid: v })} />
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-3">
@@ -248,11 +249,11 @@ export default function SalesPage() {
                       <td className="px-2 py-1"><Input value={editForm.date || ""} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="h-8 text-xs" /></td>
                       <td className="px-2 py-1"><Input value={editForm.customerName || ""} onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })} className="h-8 text-xs" /></td>
                       <td className="px-2 py-1"><Input value={editForm.billNo || ""} onChange={(e) => setEditForm({ ...editForm, billNo: e.target.value })} className="h-8 text-xs" /></td>
-                      <td className="px-2 py-1"><Input type="number" value={editForm.cash || 0} onChange={(e) => setEditForm({ ...editForm, cash: Number(e.target.value) })} className="h-8 text-xs text-right" /></td>
-                      <td className="px-2 py-1"><Input type="number" value={editForm.jc || 0} onChange={(e) => setEditForm({ ...editForm, jc: Number(e.target.value) })} className="h-8 text-xs text-right" /></td>
-                      <td className="px-2 py-1"><Input type="number" value={editForm.ep || 0} onChange={(e) => setEditForm({ ...editForm, ep: Number(e.target.value) })} className="h-8 text-xs text-right" /></td>
-                      <td className="px-2 py-1"><Input type="number" value={editForm.bt || 0} onChange={(e) => setEditForm({ ...editForm, bt: Number(e.target.value) })} className="h-8 text-xs text-right" /></td>
-                      <td className="px-2 py-1"><Input type="number" value={editForm.notPaid || 0} onChange={(e) => setEditForm({ ...editForm, notPaid: Number(e.target.value) })} className="h-8 text-xs text-right" /></td>
+                      <td className="px-2 py-1"><NumberInput value={editForm.cash || 0} onValueChange={(v) => setEditForm({ ...editForm, cash: v })} className="h-8 text-xs text-right" /></td>
+                      <td className="px-2 py-1"><NumberInput value={editForm.jc || 0} onValueChange={(v) => setEditForm({ ...editForm, jc: v })} className="h-8 text-xs text-right" /></td>
+                      <td className="px-2 py-1"><NumberInput value={editForm.ep || 0} onValueChange={(v) => setEditForm({ ...editForm, ep: v })} className="h-8 text-xs text-right" /></td>
+                      <td className="px-2 py-1"><NumberInput value={editForm.bt || 0} onValueChange={(v) => setEditForm({ ...editForm, bt: v })} className="h-8 text-xs text-right" /></td>
+                      <td className="px-2 py-1"><NumberInput value={editForm.notPaid || 0} onValueChange={(v) => setEditForm({ ...editForm, notPaid: v })} className="h-8 text-xs text-right" /></td>
                       <td className="px-2 py-1 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Save className="h-3.5 w-3.5 text-success" /></Button>

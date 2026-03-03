@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle } from "lucide-react";
+import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle, ShoppingCart, Receipt, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { getInventory, getReceivables, getSales } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import { InventoryItem } from "@/types";
 import { motion } from "framer-motion";
 import {
@@ -15,6 +17,16 @@ const CHART_COLORS = [
   "hsl(190, 80%, 45%)", "hsl(30, 80%, 55%)", "hsl(160, 60%, 40%)", "hsl(350, 70%, 55%)",
 ];
 
+interface TodaySummary {
+  todaySales: number;
+  todayPurchases: number;
+  todayExpenses: number;
+  todayProfit: number;
+  todaySalesCount: number;
+  todayPurchasesCount: number;
+  todayExpensesCount: number;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState({
     totalItems: 0, totalInventoryValue: 0, totalReceivables: 0,
@@ -25,8 +37,11 @@ export default function DashboardPage() {
   const [breakdownData, setBreakdownData] = useState<{ name: string; value: number }[]>([]);
   const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<{ name: string; quantity: number; alert_threshold: number }[]>([]);
+  const [today, setToday] = useState<TodaySummary>({ todaySales: 0, todayPurchases: 0, todayExpenses: 0, todayProfit: 0, todaySalesCount: 0, todayPurchasesCount: 0, todayExpensesCount: 0 });
 
   useEffect(() => {
+    // Legacy localStorage data
     const inv = getInventory();
     const recv = getReceivables();
     const sales = getSales();
@@ -46,7 +61,6 @@ export default function DashboardPage() {
       totalJC, totalEP, totalBT,
     });
 
-    // Payment method breakdown
     setPaymentData([
       { name: "Cash", value: totalCash },
       { name: "JazzCash", value: totalJC },
@@ -54,7 +68,6 @@ export default function DashboardPage() {
       { name: "Bank Transfer", value: totalBT },
     ].filter((d) => d.value > 0));
 
-    // Top debtors
     const debtors = recv
       .filter((r) => r.balance > 0)
       .sort((a, b) => b.balance - a.balance)
@@ -62,7 +75,6 @@ export default function DashboardPage() {
       .map((r) => ({ name: r.partyName.length > 15 ? r.partyName.slice(0, 15) + "…" : r.partyName, balance: r.balance }));
     setTopDebtors(debtors);
 
-    // Receivables breakdown
     const positive = recv.filter((r) => r.balance > 0);
     const negative = recv.filter((r) => r.balance < 0);
     const zero = recv.filter((r) => r.balance === 0);
@@ -72,22 +84,53 @@ export default function DashboardPage() {
       { name: "Settled", value: zero.length },
     ].filter((d) => d.value > 0));
 
-    // Low stock items
     const lowStock = inv.filter((item) => {
       const threshold = (item as any).alertThreshold;
       return threshold && threshold > 0 && item.quantity <= threshold;
     });
     setLowStockItems(lowStock);
+
+    // Fetch today's data from Supabase
+    const todayStr = new Date().toISOString().split("T")[0];
+    const fetchToday = async () => {
+      const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
+        supabase.from("sale_transactions").select("total").eq("date", todayStr),
+        supabase.from("purchases").select("total").eq("date", todayStr),
+        supabase.from("expenses").select("amount").eq("date", todayStr),
+        supabase.from("products").select("name, quantity, alert_threshold"),
+      ]);
+
+      const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
+      const purchTotal = (todayPurchases || []).reduce((s, r) => s + Number(r.total || 0), 0);
+      const expTotal = (todayExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+
+      setToday({
+        todaySales: salesTotal,
+        todayPurchases: purchTotal,
+        todayExpenses: expTotal,
+        todayProfit: salesTotal - purchTotal - expTotal,
+        todaySalesCount: todaySales?.length || 0,
+        todayPurchasesCount: todayPurchases?.length || 0,
+        todayExpensesCount: todayExpenses?.length || 0,
+      });
+
+      setLowStockProducts(
+        (products || [])
+          .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
+          .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
+      );
+    };
+    fetchToday();
   }, []);
 
   const cards = [
     { title: "Inventory Items", value: stats.totalItems, format: "number", icon: Package, link: "/inventory", color: "text-accent" },
-    { title: "Inventory Value", value: stats.totalInventoryValue, format: "currency", icon: TrendingUp, link: "/inventory", color: "text-success" },
+    { title: "Inventory Value", value: stats.totalInventoryValue, format: "currency", icon: TrendingUp, link: "/inventory", color: "text-green-600" },
     { title: "Total Receivables", value: stats.totalReceivables, format: "currency", icon: Users, link: "/receivables", color: "text-accent" },
     { title: "Active Parties", value: stats.totalParties, format: "number", icon: Users, link: "/receivables", color: "text-muted-foreground" },
-    { title: "Cash Sales", value: stats.totalCashSales, format: "currency", icon: Banknote, link: "/sales", color: "text-success" },
+    { title: "Cash Sales", value: stats.totalCashSales, format: "currency", icon: Banknote, link: "/sales", color: "text-green-600" },
     { title: "JazzCash (JC)", value: stats.totalJC, format: "currency", icon: Smartphone, link: "/sales", color: "text-accent" },
-    { title: "EasyPaisa (EP)", value: stats.totalEP, format: "currency", icon: CreditCard, link: "/sales", color: "text-success" },
+    { title: "EasyPaisa (EP)", value: stats.totalEP, format: "currency", icon: CreditCard, link: "/sales", color: "text-green-600" },
     { title: "Bank Transfer (BT)", value: stats.totalBT, format: "currency", icon: Building2, link: "/sales", color: "text-primary" },
     { title: "Unpaid Amount", value: stats.totalUnpaid, format: "currency", icon: ArrowDownRight, link: "/sales", color: "text-destructive" },
   ];
@@ -102,12 +145,30 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Overview of your shop operations</p>
       </div>
 
-      {/* Low Stock Alerts */}
-      {lowStockItems.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-warning bg-warning/10 p-4">
+      {/* Low Stock Alerts — Products DB */}
+      {lowStockProducts.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-warning" />
-            <h3 className="font-semibold text-warning">Low Stock Alert</h3>
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <h3 className="font-semibold text-destructive">Low Stock Alert — {lowStockProducts.length} product(s)</h3>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {lowStockProducts.map((p) => (
+              <div key={p.name} className="flex items-center justify-between rounded border bg-background p-2 text-sm">
+                <span className="font-medium">{p.name}</span>
+                <span className="text-destructive font-bold">{p.quantity} / {p.alert_threshold}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Low Stock Alerts — Legacy Inventory */}
+      {lowStockItems.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950/20 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <h3 className="font-semibold text-orange-600">Inventory Low Stock — {lowStockItems.length} item(s)</h3>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {lowStockItems.map((item) => (
@@ -120,6 +181,56 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      {/* Today's Summary */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">Today's Summary</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Sales</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">Rs {today.todaySales.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1">{today.todaySalesCount} transaction(s)</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Purchases</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">Rs {today.todayPurchases.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1">{today.todayPurchasesCount} order(s)</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Expenses</CardTitle>
+              <Receipt className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">Rs {today.todayExpenses.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1">{today.todayExpensesCount} expense(s)</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Profit</CardTitle>
+              <DollarSign className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                Rs {today.todayProfit.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Sales - Purchases - Expenses</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Legacy Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card, i) => (
           <motion.div key={card.title} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
@@ -141,7 +252,6 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {/* Payment Method Breakdown */}
         {paymentData.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <Card>
@@ -163,7 +273,6 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Top Debtors */}
         {topDebtors.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
             <Card>
@@ -186,7 +295,6 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Receivables Breakdown */}
         {breakdownData.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <Card>
