@@ -30,7 +30,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-accent">
             <Package className="h-6 w-6 text-accent-foreground" />
           </div>
-          <CardTitle className="text-2xl">ShopManager</CardTitle>
+          <CardTitle className="text-2xl">Qazi Enterprises</CardTitle>
           <p className="text-sm text-muted-foreground">Sign in to your account</p>
         </CardHeader>
         <CardContent>
