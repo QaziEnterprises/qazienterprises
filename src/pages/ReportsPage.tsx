@@ -32,36 +32,39 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const [{ data: sales }, { data: purchases }, { data: expenses }, { data: products }] = await Promise.all([
-        supabase.from("sale_transactions").select("date, total").gte("date", startDate).lte("date", endDate),
-        supabase.from("purchases").select("date, total").gte("date", startDate).lte("date", endDate),
-        supabase.from("expenses").select("date, amount").gte("date", startDate).lte("date", endDate),
-        supabase.from("products").select("name, quantity, alert_threshold"),
-      ]);
+      try {
+        const [{ data: sales }, { data: purchases }, { data: expenses }, { data: products }] = await Promise.all([
+          supabase.from("sale_transactions").select("date, total").gte("date", startDate).lte("date", endDate),
+          supabase.from("purchases").select("date, total").gte("date", startDate).lte("date", endDate),
+          supabase.from("expenses").select("date, amount").gte("date", startDate).lte("date", endDate),
+          supabase.from("products").select("name, quantity, alert_threshold"),
+        ]);
 
-      // Low stock
-      setLowStockProducts(
-        (products || [])
-          .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
-          .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
-      );
+        setLowStockProducts(
+          (products || [])
+            .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
+            .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
+        );
 
-      // Build daily summaries
-      const dateMap = new Map<string, DailySummary>();
-      const getOrCreate = (date: string): DailySummary => {
-        if (!dateMap.has(date)) dateMap.set(date, { date, totalSales: 0, totalPurchases: 0, totalExpenses: 0, profit: 0, salesCount: 0, purchasesCount: 0, expensesCount: 0 });
-        return dateMap.get(date)!;
-      };
+        const dateMap = new Map<string, DailySummary>();
+        const getOrCreate = (date: string): DailySummary => {
+          if (!dateMap.has(date)) dateMap.set(date, { date, totalSales: 0, totalPurchases: 0, totalExpenses: 0, profit: 0, salesCount: 0, purchasesCount: 0, expensesCount: 0 });
+          return dateMap.get(date)!;
+        };
 
-      (sales || []).forEach((s) => { const d = getOrCreate(s.date); d.totalSales += Number(s.total || 0); d.salesCount++; });
-      (purchases || []).forEach((p) => { const d = getOrCreate(p.date); d.totalPurchases += Number(p.total || 0); d.purchasesCount++; });
-      (expenses || []).forEach((e) => { const d = getOrCreate(e.date); d.totalExpenses += Number(e.amount || 0); d.expensesCount++; });
+        (sales || []).forEach((s) => { const d = getOrCreate(s.date); d.totalSales += Number(s.total || 0); d.salesCount++; });
+        (purchases || []).forEach((p) => { const d = getOrCreate(p.date); d.totalPurchases += Number(p.total || 0); d.purchasesCount++; });
+        (expenses || []).forEach((e) => { const d = getOrCreate(e.date); d.totalExpenses += Number(e.amount || 0); d.expensesCount++; });
 
-      dateMap.forEach((d) => { d.profit = d.totalSales - d.totalPurchases - d.totalExpenses; });
+        dateMap.forEach((d) => { d.profit = d.totalSales - d.totalPurchases - d.totalExpenses; });
 
-      const sorted = Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
-      setSummaries(sorted);
-      setLoading(false);
+        const sorted = Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+        setSummaries(sorted);
+      } catch (e) {
+        console.error("Reports fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [startDate, endDate]);

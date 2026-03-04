@@ -31,13 +31,19 @@ export default function ExpensesPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: exps }, { data: cats }] = await Promise.all([
-      supabase.from("expenses").select("*").order("date", { ascending: false }),
-      supabase.from("expense_categories").select("*").order("name"),
-    ]);
-    setExpenses(exps || []);
-    setCategories(cats || []);
-    setLoading(false);
+    try {
+      const [{ data: exps }, { data: cats }] = await Promise.all([
+        supabase.from("expenses").select("*").order("date", { ascending: false }),
+        supabase.from("expense_categories").select("*").order("name"),
+      ]);
+      setExpenses(exps || []);
+      setCategories(cats || []);
+    } catch (e) {
+      console.error("Expenses fetch error:", e);
+      toast.error("Failed to load expenses");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

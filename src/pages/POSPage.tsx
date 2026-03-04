@@ -45,15 +45,20 @@ export default function POSPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetch = async () => {
-      const [{ data: prods }, { data: custs }] = await Promise.all([
-        supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
-        supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
-      ]);
-      setProducts(prods || []);
-      setCustomers(custs || []);
+    const fetchData = async () => {
+      try {
+        const [{ data: prods }, { data: custs }] = await Promise.all([
+          supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
+          supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
+        ]);
+        setProducts(prods || []);
+        setCustomers(custs || []);
+      } catch (e) {
+        console.error("POS fetch error:", e);
+        toast.error("Failed to load POS data");
+      }
     };
-    fetch();
+    fetchData();
   }, []);
 
   const filteredProducts = products.filter((p) =>

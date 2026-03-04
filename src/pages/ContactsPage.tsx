@@ -39,10 +39,16 @@ export default function ContactsPage() {
 
   const fetchContacts = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("contacts").select("*").order("name");
-    if (error) { toast.error("Failed to load contacts"); console.error(error); }
-    else setContacts(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("contacts").select("*").order("name");
+      if (error) { toast.error("Failed to load contacts"); console.error(error); }
+      else setContacts(data || []);
+    } catch (e) {
+      console.error("Contacts fetch error:", e);
+      toast.error("Failed to load contacts");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchContacts(); }, []);

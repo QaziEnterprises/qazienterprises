@@ -41,15 +41,21 @@ export default function PurchasesPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: purch }, { data: supps }, { data: prods }] = await Promise.all([
-      supabase.from("purchases").select("*").order("date", { ascending: false }),
-      supabase.from("contacts").select("id, name").eq("type", "supplier").order("name"),
-      supabase.from("products").select("id, name, purchase_price, quantity").order("name"),
-    ]);
-    setPurchases(purch || []);
-    setSuppliers(supps || []);
-    setProducts(prods || []);
-    setLoading(false);
+    try {
+      const [{ data: purch }, { data: supps }, { data: prods }] = await Promise.all([
+        supabase.from("purchases").select("*").order("date", { ascending: false }),
+        supabase.from("contacts").select("id, name").eq("type", "supplier").order("name"),
+        supabase.from("products").select("id, name, purchase_price, quantity").order("name"),
+      ]);
+      setPurchases(purch || []);
+      setSuppliers(supps || []);
+      setProducts(prods || []);
+    } catch (e) {
+      console.error("Purchases fetch error:", e);
+      toast.error("Failed to load purchases");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

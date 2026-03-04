@@ -77,11 +77,22 @@ function AppRoutes() {
   }, []);
 
   if (loading || !ready) {
+    const showRecovery = ready && loading; // ready passed but auth still loading = stuck
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#f59e0b", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
-          <p style={{ color: "#666" }}>Loading...</p>
+          <p style={{ color: "#666", marginBottom: 16 }}>Loading...</p>
+          {showRecovery && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+              <button onClick={() => window.location.reload()} style={{ padding: "8px 24px", cursor: "pointer", background: "#f59e0b", border: "none", borderRadius: 6, color: "#fff", fontWeight: 600 }}>
+                Retry
+              </button>
+              <button onClick={async () => { const { supabase: sb } = await import("@/integrations/supabase/client"); await sb.auth.signOut(); window.location.href = "/login"; }} style={{ padding: "6px 20px", cursor: "pointer", background: "transparent", border: "1px solid #ccc", borderRadius: 6, color: "#666", fontSize: 13 }}>
+                Sign out &amp; return to login
+              </button>
+            </div>
+          )}
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>

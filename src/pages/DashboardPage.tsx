@@ -93,32 +93,36 @@ export default function DashboardPage() {
     // Fetch today's data from Supabase
     const todayStr = new Date().toISOString().split("T")[0];
     const fetchToday = async () => {
-      const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
-        supabase.from("sale_transactions").select("total").eq("date", todayStr),
-        supabase.from("purchases").select("total").eq("date", todayStr),
-        supabase.from("expenses").select("amount").eq("date", todayStr),
-        supabase.from("products").select("name, quantity, alert_threshold"),
-      ]);
+      try {
+        const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
+          supabase.from("sale_transactions").select("total").eq("date", todayStr),
+          supabase.from("purchases").select("total").eq("date", todayStr),
+          supabase.from("expenses").select("amount").eq("date", todayStr),
+          supabase.from("products").select("name, quantity, alert_threshold"),
+        ]);
 
-      const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
-      const purchTotal = (todayPurchases || []).reduce((s, r) => s + Number(r.total || 0), 0);
-      const expTotal = (todayExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+        const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
+        const purchTotal = (todayPurchases || []).reduce((s, r) => s + Number(r.total || 0), 0);
+        const expTotal = (todayExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
-      setToday({
-        todaySales: salesTotal,
-        todayPurchases: purchTotal,
-        todayExpenses: expTotal,
-        todayProfit: salesTotal - purchTotal - expTotal,
-        todaySalesCount: todaySales?.length || 0,
-        todayPurchasesCount: todayPurchases?.length || 0,
-        todayExpensesCount: todayExpenses?.length || 0,
-      });
+        setToday({
+          todaySales: salesTotal,
+          todayPurchases: purchTotal,
+          todayExpenses: expTotal,
+          todayProfit: salesTotal - purchTotal - expTotal,
+          todaySalesCount: todaySales?.length || 0,
+          todayPurchasesCount: todayPurchases?.length || 0,
+          todayExpensesCount: todayExpenses?.length || 0,
+        });
 
-      setLowStockProducts(
-        (products || [])
-          .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
-          .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
-      );
+        setLowStockProducts(
+          (products || [])
+            .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
+            .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
+        );
+      } catch (e) {
+        console.error("Dashboard fetch error:", e);
+      }
     };
     fetchToday();
   }, []);
