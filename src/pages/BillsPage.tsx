@@ -32,13 +32,18 @@ export default function BillsPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const [{ data: s }, { data: c }] = await Promise.all([
-        supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, name").eq("type", "customer"),
-      ]);
-      setSales(s || []);
-      setCustomers(c || []);
-      setLoading(false);
+      try {
+        const [{ data: s }, { data: c }] = await Promise.all([
+          supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
+          supabase.from("contacts").select("id, name").eq("type", "customer"),
+        ]);
+        setSales(s || []);
+        setCustomers(c || []);
+      } catch (e) {
+        console.error("Bills fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);

@@ -12,42 +12,85 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+  Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<"admin" | "user" | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole((data?.role as "admin" | "user") || "user");
+  const fetchRole = async (userId: string): Promise<"admin" | "user"> => {
+    try {
+      const result = await Promise.race([
+        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+      if (result && typeof result === "object" && "data" in result) {
+        return (result.data?.role as "admin" | "user") || "user";
+      }
+      return "user";
+    } catch (e) {
+      console.warn("auth:role fetch failed, defaulting to user", e);
+      return "user";
+    }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log("auth:init");
+    let mounted = true;
+
+    // Set up auth listener FIRST (non-blocking role fetch inside)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+
       if (currentUser) {
-        await fetchRole(currentUser.id);
+        // Fire-and-forget role fetch — do NOT await inside listener
+        fetchRole(currentUser.id).then((r) => {
+          if (mounted) {
+            setRole(r);
+            console.log("auth:role", r);
+          }
+        });
       } else {
         setRole(null);
       }
       setLoading(false);
+      console.log("auth:state", event);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchRole(currentUser.id);
+    // Then get initial session with timeout
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          7000,
+          { data: { session: null } } as any
+        );
+        if (!mounted) return;
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          const r = await fetchRole(currentUser.id);
+          if (mounted) setRole(r);
+        }
+      } catch (e) {
+        console.error("auth:init error", e);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          console.log("auth:done");
+        }
       }
-      setLoading(false);
-    });
+    };
+    initSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

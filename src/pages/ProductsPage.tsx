@@ -34,13 +34,19 @@ export default function ProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: prods }, { data: cats }] = await Promise.all([
-      supabase.from("products").select("*").order("name"),
-      supabase.from("product_categories").select("*").order("name"),
-    ]);
-    setProducts(prods || []);
-    setCategories(cats || []);
-    setLoading(false);
+    try {
+      const [{ data: prods }, { data: cats }] = await Promise.all([
+        supabase.from("products").select("*").order("name"),
+        supabase.from("product_categories").select("*").order("name"),
+      ]);
+      setProducts(prods || []);
+      setCategories(cats || []);
+    } catch (e) {
+      console.error("Products fetch error:", e);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
