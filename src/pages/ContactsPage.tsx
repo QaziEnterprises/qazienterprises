@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, X, Users, Truck, Pencil, Trash2, Save, Phone, Mail, MapPin } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search, X, Users, Truck, Pencil, Trash2, Save, Phone, Mail, MapPin, Download, Upload } from "lucide-react";
+import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,10 +109,51 @@ export default function ContactsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
           <p className="text-sm text-muted-foreground">Manage your customers and suppliers</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" size="sm"><Plus className="h-4 w-4" /> Add Contact</Button>
-          </DialogTrigger>
+        <div className="flex flex-wrap gap-2">
+          <label>
+            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const rows = await importFromExcel<any>(file);
+                let count = 0;
+                for (const row of rows) {
+                  const name = row.Name || row.name;
+                  if (!name) continue;
+                  await supabase.from("contacts").insert({
+                    name, type: row.Type || row.type || "customer",
+                    phone: row.Phone || row.phone || null, email: row.Email || row.email || null,
+                    city: row.City || row.city || null, address: row.Address || row.address || null,
+                    opening_balance: Number(row["Opening Balance"] || row.opening_balance || 0),
+                    current_balance: Number(row["Current Balance"] || row.current_balance || row["Opening Balance"] || 0),
+                  });
+                  count++;
+                }
+                toast.success(`Imported ${count} contacts`);
+                fetchContacts();
+              } catch { toast.error("Failed to import"); }
+              e.target.value = "";
+            }} />
+            <Button size="sm" variant="outline" className="gap-2" asChild><span><Upload className="h-4 w-4" /> Import</span></Button>
+          </label>
+          <Button size="sm" variant="outline" className="gap-2" disabled={contacts.length === 0} onClick={() => {
+            exportToExcel(filtered.map(c => ({
+              Name: c.name, Type: c.type, Phone: c.phone || "", Email: c.email || "",
+              City: c.city || "", Address: c.address || "", "Opening Balance": c.opening_balance,
+              "Current Balance": Number(c.current_balance),
+            })), `contacts_${tab}`, "Contacts");
+            toast.success("Exported to Excel");
+          }}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" disabled={contacts.length === 0} onClick={() => {
+            printAsPDF(`Contacts - ${tab === "customer" ? "Customers" : "Suppliers"}`,
+              ["Name", "Phone", "City", "Balance"],
+              filtered.map(c => [c.name, c.phone || "—", c.city || "—", `Rs ${Number(c.current_balance).toLocaleString()}`])
+            );
+          }}><Download className="h-4 w-4" /> PDF</Button>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" size="sm"><Plus className="h-4 w-4" /> Add Contact</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>{editingId ? "Edit Contact" : "Add Contact"}</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-2">
@@ -139,7 +181,8 @@ export default function ContactsPage() {
               <Button onClick={handleSave} className="gap-2"><Save className="h-4 w-4" /> {editingId ? "Update" : "Save"}</Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

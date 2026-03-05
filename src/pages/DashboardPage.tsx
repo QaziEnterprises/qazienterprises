@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InventoryItem } from "@/types";
 import { motion } from "framer-motion";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 
 const CHART_COLORS = [
@@ -229,6 +229,62 @@ export default function DashboardPage() {
                 Rs {today.todayProfit.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Sales - Purchases - Expenses</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Today's Charts */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+          {(() => {
+            const data = [
+              { name: "Sales", value: today.todaySales },
+              { name: "Purchases", value: today.todayPurchases },
+              { name: "Expenses", value: today.todayExpenses },
+            ].filter(d => d.value > 0);
+            if (data.length === 0) return null;
+            return (
+              <Card className="sm:col-span-2 lg:col-span-1">
+                <CardHeader><CardTitle className="text-sm">Today's Breakdown</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                        {data.map((_, idx) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => [`Rs ${v.toLocaleString()}`, "Amount"]} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            );
+          })()}
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Transactions Today</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={[
+                  { name: "Sales", count: today.todaySalesCount },
+                  { name: "Purchases", count: today.todayPurchasesCount },
+                  { name: "Expenses", count: today.todayExpensesCount },
+                ]}>
+                  <XAxis dataKey="name" fontSize={11} />
+                  <YAxis fontSize={11} allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    <Cell fill="hsl(142, 71%, 45%)" />
+                    <Cell fill="hsl(220, 60%, 55%)" />
+                    <Cell fill="hsl(0, 72%, 51%)" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Quick Summary</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Avg Sale Value</span><span className="font-medium">{today.todaySalesCount > 0 ? `Rs ${Math.round(today.todaySales / today.todaySalesCount).toLocaleString()}` : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Total Transactions</span><span className="font-medium">{today.todaySalesCount + today.todayPurchasesCount + today.todayExpensesCount}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Profit Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
             </CardContent>
           </Card>
         </div>

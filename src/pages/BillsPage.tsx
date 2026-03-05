@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download } from "lucide-react";
+import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -92,9 +94,26 @@ export default function BillsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Bills & Invoices</h1>
-        <p className="text-sm text-muted-foreground">{sales.length} total invoices</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Bills & Invoices</h1>
+          <p className="text-sm text-muted-foreground">{sales.length} total invoices</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" disabled={sales.length === 0} onClick={() => {
+            exportToExcel(filtered.map(s => ({
+              Invoice: s.invoice_no || "", Date: s.date, Customer: getCustomerName(s.customer_id),
+              Payment: s.payment_method, Status: s.payment_status, Total: Number(s.total),
+            })), "bills_invoices", "Invoices");
+            toast.success("Exported to Excel");
+          }}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" disabled={sales.length === 0} onClick={() => {
+            printAsPDF("Bills & Invoices",
+              ["Invoice", "Date", "Customer", "Payment", "Status", "Total"],
+              filtered.map(s => [s.invoice_no || "—", s.date, getCustomerName(s.customer_id), s.payment_method, s.payment_status, `Rs ${Number(s.total).toLocaleString()}`])
+            );
+          }}><Download className="h-4 w-4" /> PDF</Button>
+        </div>
       </div>
 
       <div className="relative mb-4 max-w-sm">
