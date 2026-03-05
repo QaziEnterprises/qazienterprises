@@ -18,6 +18,7 @@ import ExpensesPage from "@/pages/ExpensesPage";
 import POSPage from "@/pages/POSPage";
 import ReportsPage from "@/pages/ReportsPage";
 import BillsPage from "@/pages/BillsPage";
+import SummaryPage from "@/pages/SummaryPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -56,7 +57,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
   const { user, role, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && role !== "admin") return <Navigate to="/inventory" replace />;
+  if (adminOnly && role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -69,15 +70,14 @@ function AppRoutes() {
       .then(() => setReady(true))
       .catch((err) => {
         console.error("Init error:", err);
-        setReady(true); // Still show app even if init fails
+        setReady(true);
       });
-    // Safety timeout
     const timer = setTimeout(() => setReady(true), 5000);
     return () => clearTimeout(timer);
   }, []);
 
   if (loading || !ready) {
-    const showRecovery = ready && loading; // ready passed but auth still loading = stuck
+    const showRecovery = ready && loading;
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
         <div style={{ textAlign: "center" }}>
@@ -104,18 +104,19 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/login" element={<Navigate to={role === "admin" ? "/" : "/inventory"} replace />} />
-        <Route path="/" element={<ProtectedRoute adminOnly>{role === "admin" ? <DashboardPage /> : <Navigate to="/inventory" replace />}</ProtectedRoute>} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/receivables" element={<ProtectedRoute><ReceivablesPage /></ProtectedRoute>} />
-        <Route path="/sales" element={<ProtectedRoute adminOnly><SalesPage /></ProtectedRoute>} />
-        <Route path="/contacts" element={<ProtectedRoute adminOnly><ContactsPage /></ProtectedRoute>} />
-        <Route path="/products-db" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
-        <Route path="/purchases" element={<ProtectedRoute adminOnly><PurchasesPage /></ProtectedRoute>} />
-        <Route path="/expenses" element={<ProtectedRoute adminOnly><ExpensesPage /></ProtectedRoute>} />
-        <Route path="/pos" element={<ProtectedRoute adminOnly><POSPage /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute adminOnly><ReportsPage /></ProtectedRoute>} />
-        <Route path="/bills" element={<ProtectedRoute adminOnly><BillsPage /></ProtectedRoute>} />
+        <Route path="/sales" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+        <Route path="/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
+        <Route path="/products-db" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+        <Route path="/purchases" element={<ProtectedRoute><PurchasesPage /></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
+        <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+        <Route path="/bills" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
+        <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

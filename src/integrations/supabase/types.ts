@@ -59,6 +59,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_summaries: {
+        Row: {
+          created_at: string | null
+          date: string
+          expenses_count: number | null
+          id: string
+          net_profit: number | null
+          purchases_count: number | null
+          sales_count: number | null
+          total_expenses: number | null
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          expenses_count?: number | null
+          id?: string
+          net_profit?: number | null
+          purchases_count?: number | null
+          sales_count?: number | null
+          total_expenses?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          expenses_count?: number | null
+          id?: string
+          net_profit?: number | null
+          purchases_count?: number | null
+          sales_count?: number | null
+          total_expenses?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           created_at: string

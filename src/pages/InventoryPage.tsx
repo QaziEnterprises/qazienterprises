@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, X, Bell } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Bell, Download, Upload } from "lucide-react";
+import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,9 +78,48 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
           <p className="text-sm text-muted-foreground">{items.length} items in stock</p>
         </div>
-        <Button onClick={openAdd} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-          <Plus className="h-4 w-4" /> Add Item
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <label>
+            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const rows = await importFromExcel<any>(file);
+                let count = 0;
+                for (const row of rows) {
+                  const name = row.Name || row.name;
+                  if (!name) continue;
+                  addInventoryItem({
+                    name, quantity: Number(row.Quantity || row.quantity || 0),
+                    price: Number(row.Price || row.price || 0),
+                    alertThreshold: Number(row["Alert Threshold"] || row.alertThreshold || 0),
+                  } as any);
+                  count++;
+                }
+                toast.success(`Imported ${count} items`);
+                reload();
+              } catch { toast.error("Failed to import"); }
+              e.target.value = "";
+            }} />
+            <Button variant="outline" size="sm" className="gap-2" asChild><span><Upload className="h-4 w-4" /> Import</span></Button>
+          </label>
+          <Button variant="outline" size="sm" className="gap-2" disabled={items.length === 0} onClick={() => {
+            exportToExcel(items.map(i => ({
+              Name: i.name, Quantity: i.quantity, Price: i.price,
+              Value: i.quantity * i.price, "Alert Threshold": (i as any).alertThreshold || 0,
+            })), "inventory", "Inventory");
+            toast.success("Exported to Excel");
+          }}><Download className="h-4 w-4" /> Excel</Button>
+          <Button variant="outline" size="sm" className="gap-2" disabled={items.length === 0} onClick={() => {
+            printAsPDF("Inventory",
+              ["Name", "Quantity", "Price", "Value"],
+              items.map(i => [i.name, String(i.quantity), `Rs ${i.price.toLocaleString()}`, `Rs ${(i.quantity * i.price).toLocaleString()}`])
+            );
+          }}><Download className="h-4 w-4" /> PDF</Button>
+          <Button onClick={openAdd} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+            <Plus className="h-4 w-4" /> Add Item
+          </Button>
+        </div>
       </div>
 
       <div className="relative mb-4 max-w-sm">

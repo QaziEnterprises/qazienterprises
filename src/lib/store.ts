@@ -21,31 +21,14 @@ function set<T>(key: string, data: T[]) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-// Auto-load bundled Excel files on first visit
+// Clear old bundled data - user will upload fresh data
 export async function initializeDefaultData() {
-  if (localStorage.getItem(KEYS.initialized)) return;
-  
-  try {
-    const [recvRes, salesRes] = await Promise.all([
-      fetch("/data/RECEIVABLES.xlsx"),
-      fetch("/data/Summary.xlsx"),
-    ]);
-
-    if (recvRes.ok) {
-      const buf = new Uint8Array(await recvRes.arrayBuffer());
-      const receivables = parseReceivablesFromBuffer(buf);
-      if (receivables.length > 0) saveReceivables(receivables);
-    }
-
-    if (salesRes.ok) {
-      const buf = new Uint8Array(await salesRes.arrayBuffer());
-      const sales = parseSalesFromBuffer(buf);
-      if (sales.length > 0) saveSales(sales);
-    }
-
-    localStorage.setItem(KEYS.initialized, "true");
-  } catch (err) {
-    console.error("Failed to load default data:", err);
+  // Clear previous ledger data as requested
+  const cleared = localStorage.getItem("ledger_cleared_v2");
+  if (!cleared) {
+    localStorage.removeItem(KEYS.receivables);
+    localStorage.removeItem(KEYS.sales);
+    localStorage.setItem("ledger_cleared_v2", "true");
   }
 }
 
