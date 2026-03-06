@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, X, Package, Pencil, Trash2, Save, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search, X, Package, Pencil, Trash2, Save, AlertTriangle, Download, FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
+import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
 
 interface Product {
   id: string; name: string; sku: string | null; category_id: string | null;
@@ -112,6 +113,45 @@ export default function ProductsPage() {
   };
 
   const getCategoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "—";
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(p => ({
+      Name: p.name, SKU: p.sku || "", Category: getCategoryName(p.category_id), Brand: p.brand || "",
+      "Purchase Price": p.purchase_price, "Selling Price": p.selling_price, Quantity: p.quantity, Unit: p.unit, "Alert Threshold": p.alert_threshold,
+    })), "Products");
+  };
+
+  const handleExportPDF = () => {
+    printAsPDF("Products", ["Name", "SKU", "Category", "Purchase", "Selling", "Stock"],
+      filtered.map(p => [p.name, p.sku || "—", getCategoryName(p.category_id), `Rs ${Number(p.purchase_price).toLocaleString()}`, `Rs ${Number(p.selling_price).toLocaleString()}`, `${p.quantity} ${p.unit}`])
+    );
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const rows = await importFromExcel<any>(file);
+      let count = 0;
+      for (const row of rows) {
+        const name = row.Name || row.name;
+        if (!name) continue;
+        await supabase.from("products").insert({
+          name, sku: row.SKU || row.sku || null, brand: row.Brand || row.brand || null,
+          purchase_price: Number(row["Purchase Price"] || row.purchase_price || 0),
+          selling_price: Number(row["Selling Price"] || row.selling_price || 0),
+          quantity: Number(row.Quantity || row.quantity || 0),
+          unit: row.Unit || row.unit || "pcs",
+          alert_threshold: Number(row["Alert Threshold"] || row.alert_threshold || 0),
+        });
+        count++;
+      }
+      toast.success(`Imported ${count} products`);
+      fetchData();
+    } catch { toast.error("Failed to import"); }
+    e.target.value = "";
+  };
 
   return (
     <div>
@@ -120,7 +160,11 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Products</h1>
           <p className="text-sm text-muted-foreground">{products.length} products · Stock value: Rs {totalValue.toLocaleString()}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <input type="file" accept=".xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleImport} />
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}><Upload className="h-4 w-4" /> Import</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleExportExcel} disabled={filtered.length === 0}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleExportPDF} disabled={filtered.length === 0}><Download className="h-4 w-4" /> PDF</Button>
           <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
             <DialogTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Plus className="h-4 w-4" /> Category</Button></DialogTrigger>
             <DialogContent className="max-w-sm">

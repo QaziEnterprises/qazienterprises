@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, X, Receipt, Pencil, Trash2, Save } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search, X, Receipt, Pencil, Trash2, Save, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
+import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
 
 interface Expense {
   id: string; category_id: string | null; amount: number; date: string;
@@ -96,6 +97,43 @@ export default function ExpensesPage() {
   };
 
   const getCategoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "Uncategorized";
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(e => ({
+      Date: e.date, Category: getCategoryName(e.category_id), Description: e.description || "",
+      "Payment Method": e.payment_method, "Reference No": e.reference_no || "", Amount: Number(e.amount),
+    })), "Expenses");
+  };
+
+  const handleExportPDF = () => {
+    printAsPDF("Expenses", ["Date", "Category", "Description", "Method", "Amount"],
+      filtered.map(e => [e.date, getCategoryName(e.category_id), e.description || "—", e.payment_method, `Rs ${Number(e.amount).toLocaleString()}`])
+    );
+  };
+
+  const handleImport = async (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    try {
+      const rows = await importFromExcel<any>(file);
+      let count = 0;
+      for (const row of rows) {
+        const amount = Number(row.Amount || row.amount || 0);
+        if (!amount) continue;
+        await supabase.from("expenses").insert({
+          amount, date: row.Date || row.date || new Date().toISOString().split("T")[0],
+          description: row.Description || row.description || null,
+          payment_method: row["Payment Method"] || row.payment_method || "cash",
+          reference_no: row["Reference No"] || row.reference_no || null,
+        });
+        count++;
+      }
+      toast.success(`Imported ${count} expenses`);
+      fetchData();
+    } catch { toast.error("Failed to import"); }
+    ev.target.value = "";
+  };
 
   return (
     <div>
@@ -104,7 +142,11 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
           <p className="text-sm text-muted-foreground">Total: Rs {totalExpenses.toLocaleString()}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <input type="file" accept=".xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleImport} />
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}><Upload className="h-4 w-4" /> Import</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleExportExcel} disabled={filtered.length === 0}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleExportPDF} disabled={filtered.length === 0}><Download className="h-4 w-4" /> PDF</Button>
           <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
             <DialogTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Plus className="h-4 w-4" /> Category</Button></DialogTrigger>
             <DialogContent className="max-w-sm">

@@ -25,6 +25,10 @@ interface TodaySummary {
   todaySalesCount: number;
   todayPurchasesCount: number;
   todayExpensesCount: number;
+  todayJC: number;
+  todayEP: number;
+  todayBT: number;
+  todayCash: number;
 }
 
 export default function DashboardPage() {
@@ -38,7 +42,7 @@ export default function DashboardPage() {
   const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<{ name: string; quantity: number; alert_threshold: number }[]>([]);
-  const [today, setToday] = useState<TodaySummary>({ todaySales: 0, todayPurchases: 0, todayExpenses: 0, todayProfit: 0, todaySalesCount: 0, todayPurchasesCount: 0, todayExpensesCount: 0 });
+  const [today, setToday] = useState<TodaySummary>({ todaySales: 0, todayPurchases: 0, todayExpenses: 0, todayProfit: 0, todaySalesCount: 0, todayPurchasesCount: 0, todayExpensesCount: 0, todayJC: 0, todayEP: 0, todayBT: 0, todayCash: 0 });
 
   useEffect(() => {
     // Legacy localStorage data
@@ -95,7 +99,7 @@ export default function DashboardPage() {
     const fetchToday = async () => {
       try {
         const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
-          supabase.from("sale_transactions").select("total").eq("date", todayStr),
+          supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
           supabase.from("purchases").select("total").eq("date", todayStr),
           supabase.from("expenses").select("amount").eq("date", todayStr),
           supabase.from("products").select("name, quantity, alert_threshold"),
@@ -105,6 +109,11 @@ export default function DashboardPage() {
         const purchTotal = (todayPurchases || []).reduce((s, r) => s + Number(r.total || 0), 0);
         const expTotal = (todayExpenses || []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
+        const todayJC = (todaySales || []).filter(r => r.payment_method === 'jazzcash').reduce((s, r) => s + Number(r.total || 0), 0);
+        const todayEP = (todaySales || []).filter(r => r.payment_method === 'easypaisa').reduce((s, r) => s + Number(r.total || 0), 0);
+        const todayBT = (todaySales || []).filter(r => r.payment_method === 'bank').reduce((s, r) => s + Number(r.total || 0), 0);
+        const todayCash = (todaySales || []).filter(r => r.payment_method === 'cash').reduce((s, r) => s + Number(r.total || 0), 0);
+
         setToday({
           todaySales: salesTotal,
           todayPurchases: purchTotal,
@@ -113,6 +122,7 @@ export default function DashboardPage() {
           todaySalesCount: todaySales?.length || 0,
           todayPurchasesCount: todayPurchases?.length || 0,
           todayExpensesCount: todayExpenses?.length || 0,
+          todayJC, todayEP, todayBT, todayCash,
         });
 
         setLowStockProducts(
@@ -282,8 +292,12 @@ export default function DashboardPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Quick Summary</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Cash</span><span className="font-medium">Rs {today.todayCash.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">JazzCash</span><span className="font-medium text-accent">Rs {today.todayJC.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">EasyPaisa</span><span className="font-medium text-green-600">Rs {today.todayEP.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Bank Transfer</span><span className="font-medium text-primary">Rs {today.todayBT.toLocaleString()}</span></div>
+              <div className="border-t my-1" />
               <div className="flex justify-between"><span className="text-muted-foreground">Avg Sale Value</span><span className="font-medium">{today.todaySalesCount > 0 ? `Rs ${Math.round(today.todaySales / today.todaySalesCount).toLocaleString()}` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Total Transactions</span><span className="font-medium">{today.todaySalesCount + today.todayPurchasesCount + today.todayExpensesCount}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Profit Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
             </CardContent>
           </Card>
