@@ -1,47 +1,77 @@
 
-Issue identified (why you are seeing white background + loading for hours):
-1) The app is getting stuck in its startup loading gate (`loading || !ready` in `AppRoutes`).
-2) `ready` already has a timeout fallback, but auth `loading` can stay true forever because `useAuth` currently has no `try/catch/finally` safety around async startup (`getSession`, role fetch, auth callback).
-3) Multiple pages (POS, Products, Purchases, Expenses, Bills, Reports, Contacts) also set `loading=true` and await queries without `finally`; if any query rejects, those pages can stay on “Loading...” permanently.
-4) Session/network evidence shows token refresh succeeds, so this is most likely frontend async state deadlock rather than backend outage.
 
-Implementation plan (targeted and professional hardening):
-1) Harden auth bootstrap (`src/hooks/useAuth.tsx`) so loading can never hang
-   - Add a single `initializeAuth()` with `try/catch/finally`.
-   - Wrap `supabase.auth.getSession()` in timeout guard (e.g., `Promise.race` with 6–8s timeout).
-   - Make role fetch non-blocking-safe with its own timeout and fallback to `"user"`.
-   - Ensure every path ends with `setLoading(false)`.
-   - Add concise console diagnostics for startup phase (`auth:init`, `auth:role`, `auth:done`).
+## Plan: Customer Ledger, WhatsApp Sharing, and Audit Trail (Admin-Only)
 
-2) Remove deadlock patterns in auth state listener
-   - Avoid awaiting long async work directly inside `onAuthStateChange` without protection.
-   - Handle errors inside listener callback explicitly.
-   - Keep UI responsive even if role query fails (default role, then continue).
+### 1. Customer Ledger / Account Statement Page
+**New page: `src/pages/LedgerPage.tsx`** accessible from sidebar (admin only).
 
-3) Standardize page data loaders to never freeze (`try/catch/finally`)
-   - Files: `POSPage`, `ProductsPage`, `PurchasesPage`, `ExpensesPage`, `BillsPage`, `ReportsPage`, `ContactsPage`, `LoginPage` (submit path too).
-   - For each fetch:
-     - `setLoading(true)` before request
-     - `try` load data
-     - `catch` show toast + log error
-     - `finally` always `setLoading(false)`
-   - This fixes tabs getting stuck and improves reliability under slow/failed network.
+- Shows a list of all contacts (customers/suppliers) with their current balance
+- Click a contact to see full transaction history: all sales, purchases, payments, and receivable entries aggregated into a chronological ledger with running balance
+- Date range filter to narrow the view
+- Export options: Excel and PDF statement generation (using existing `exportUtils`)
+- Data sources: `sale_transactions` (by `customer_id`), `purchases` (by `supplier_id`), `contacts` (balances), and localStorage receivables
 
-4) Improve user recovery UX for startup failures
-   - In `App.tsx` loading screen, after timeout threshold show:
-     - “Retry initialization” button
-     - Optional “Sign out and return to login” recovery action
-   - Prevent silent infinite spinner even in rare corrupted-session states.
+No database migration needed -- reads from existing tables.
 
-5) Validate professionally end-to-end after changes
-   - Fresh new tab on preview root route.
-   - Logged-in startup and logged-out startup.
-   - Admin routes: POS, Products, Purchases, Expenses, Bills, Reports.
-   - Simulate query failure and confirm pages recover (toast + no stuck spinner).
-   - Confirm no regression in role-based routing and invoice/print flows.
+### 2. WhatsApp Invoice Sharing
+**Modify: `src/pages/POSPage.tsx` and `src/pages/BillsPage.tsx`**
 
-Technical details:
-- No database migration is required for this specific loading freeze fix.
-- Main code risk area is async control flow in frontend, not schema.
-- We will keep existing architecture (AuthProvider + route guards) and harden execution paths rather than redesign routing.
-- This is the correct approach for your symptom because replay shows loader mounts and never exits, and current code has missing `finally` paths in critical async chains.
+- Add a WhatsApp share button next to the Print button on invoice dialogs
+- Constructs a formatted text message with invoice details (invoice no, date, items, total, payment method)
+- Opens `https://wa.me/?text=...` (or `https://wa.me/{phone}?text=...` if customer phone is available from contacts)
+- Admin-only: button only renders when `role === 'admin'`
+
+No database migration needed.
+
+### 3. User Activity Audit Trail
+**New table + page**
+
+**Database migration:**
+```sql
+CREATE TABLE public.audit_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  user_email text NOT NULL,
+  action text NOT NULL,        -- 'create', 'update', 'delete'
+  entity_type text NOT NULL,   -- 'sale', 'purchase', 'expense', 'contact', 'product'
+  entity_id text,
+  description text,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can view audit logs
+CREATE POLICY "Admins can view audit logs"
+  ON public.audit_logs FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- All authenticated users can insert (log their actions)
+CREATE POLICY "Authenticated can insert audit logs"
+  ON public.audit_logs FOR INSERT TO authenticated
+  WITH CHECK (true);
+```
+
+**New utility: `src/lib/auditLog.ts`** -- a simple helper function:
+```typescript
+export async function logAction(action, entityType, entityId, description) { ... }
+```
+Called from key mutation points in POS (sale complete), Purchases (add/delete), Expenses (add/delete), Contacts (add/edit/delete), Products (add/edit/delete).
+
+**New page: `src/pages/AuditPage.tsx`** (admin only, added to sidebar with `adminOnly: true`):
+- Chronological table of all actions with user email, action type, entity, description, timestamp
+- Search/filter by user, action type, entity type, and date range
+- No edit/delete -- read-only log
+
+### 4. Routing & Sidebar Updates
+**Modify: `src/App.tsx` and `src/components/AppLayout.tsx`**
+
+- Add `/ledger` route (admin only) with BookOpen icon
+- Add `/audit` route (admin only) with ClipboardList icon
+- Both use `<ProtectedRoute adminOnly>`
+
+### Files to create/modify:
+- **Create:** `src/pages/LedgerPage.tsx`, `src/pages/AuditPage.tsx`, `src/lib/auditLog.ts`
+- **Modify:** `src/App.tsx`, `src/components/AppLayout.tsx`, `src/pages/POSPage.tsx`, `src/pages/BillsPage.tsx`, `src/pages/PurchasesPage.tsx`, `src/pages/ExpensesPage.tsx`, `src/pages/ContactsPage.tsx`, `src/pages/ProductsPage.tsx`
+- **Migration:** Create `audit_logs` table with admin-only SELECT RLS
+
