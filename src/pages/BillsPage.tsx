@@ -170,10 +170,15 @@ export default function BillsPage() {
                   <td className="px-4 py-3 capitalize text-muted-foreground">{s.payment_method}</td>
                   <td className="px-4 py-3"><Badge variant={statusColor(s.payment_status)}>{s.payment_status}</Badge></td>
                   <td className="px-4 py-3 text-right font-bold">Rs {Number(s.total).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center flex items-center justify-center gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => viewBill(s)}>
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
+                    {role === "admin" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </td>
                 </motion.tr>
               ))}
