@@ -38,8 +38,8 @@ export default function CashRegisterPage() {
   const fetchData = async () => {
     try {
       const [{ data: todayData }, { data: historyData }, { data: todaySales }, { data: todayExpenses }, { data: todayPurchases }] = await Promise.all([
-        supabase.from("cash_register" as any).select("*").eq("date", todayStr).maybeSingle(),
-        supabase.from("cash_register" as any).select("*").order("date", { ascending: false }).limit(30),
+        supabase.from("cash_register").select("*").eq("date", todayStr).maybeSingle(),
+        supabase.from("cash_register").select("*").order("date", { ascending: false }).limit(30),
         supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
         supabase.from("expenses").select("amount").eq("date", todayStr),
         supabase.from("purchases").select("total, payment_method").eq("date", todayStr),
