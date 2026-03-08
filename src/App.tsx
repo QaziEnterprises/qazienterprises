@@ -19,6 +19,8 @@ import POSPage from "@/pages/POSPage";
 import ReportsPage from "@/pages/ReportsPage";
 import BillsPage from "@/pages/BillsPage";
 import SummaryPage from "@/pages/SummaryPage";
+import LedgerPage from "@/pages/LedgerPage";
+import AuditPage from "@/pages/AuditPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
