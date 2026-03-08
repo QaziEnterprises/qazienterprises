@@ -100,7 +100,7 @@ export default function DashboardPage() {
 
         const allProducts = products || [];
         setTotalProducts(allProducts.length);
-        setTotalContacts(contactsCount || 0);
+        setTotalContacts((contactsResult as any)?.count || 0);
         setPendingPayments((pendingSales || []).reduce((s, r) => s + Number(r.total || 0), 0));
         setRecentSales((recent || []).map((r: any) => ({ id: r.id, invoice_no: r.invoice_no, total: Number(r.total || 0), payment_method: r.payment_method, date: r.date, customer_type: r.customer_type })));
         setTopDebtors((debtors || []).map((d: any) => ({ id: d.id, name: d.name, current_balance: Number(d.current_balance || 0) })));
