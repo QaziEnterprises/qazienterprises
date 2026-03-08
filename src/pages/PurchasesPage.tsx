@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { logAction } from "@/lib/auditLog";
 import { NumberInput } from "@/components/NumberInput";
 
 interface Purchase {
