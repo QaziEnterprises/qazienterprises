@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Package } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Package, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,18 +7,70 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60_000; // 1 minute
+const ATTEMPT_WINDOW_MS = 300_000; // 5 minutes
+
 export default function LoginPage() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockoutEnd, setLockoutEnd] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const attemptsRef = useRef<number[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startLockoutTimer = useCallback((endTime: number) => {
+    setLockoutEnd(endTime);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      const left = Math.ceil((endTime - Date.now()) / 1000);
+      if (left <= 0) {
+        setLockoutEnd(null);
+        setRemainingSeconds(0);
+        if (timerRef.current) clearInterval(timerRef.current);
+      } else {
+        setRemainingSeconds(left);
+      }
+    }, 1000);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check lockout
+    if (lockoutEnd && Date.now() < lockoutEnd) {
+      toast.error(`Too many attempts. Try again in ${remainingSeconds}s.`);
+      return;
+    }
+
+    // Clean old attempts outside window
+    const now = Date.now();
+    attemptsRef.current = attemptsRef.current.filter(t => now - t < ATTEMPT_WINDOW_MS);
+
+    // Check rate limit
+    if (attemptsRef.current.length >= MAX_ATTEMPTS) {
+      const lockEnd = now + LOCKOUT_DURATION_MS;
+      startLockoutTimer(lockEnd);
+      toast.error("Too many failed attempts. Locked for 60 seconds.");
+      return;
+    }
+
     setLoading(true);
     const { error } = await signIn(email, password);
     if (error) {
-      toast.error(error);
+      attemptsRef.current.push(Date.now());
+      const remaining = MAX_ATTEMPTS - attemptsRef.current.length;
+      if (remaining > 0) {
+        toast.error(`${error} (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`);
+      } else {
+        const lockEnd = Date.now() + LOCKOUT_DURATION_MS;
+        startLockoutTimer(lockEnd);
+        toast.error("Too many failed attempts. Locked for 60 seconds.");
+      }
+    } else {
+      attemptsRef.current = [];
     }
     setLoading(false);
   };
