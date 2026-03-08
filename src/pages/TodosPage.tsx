@@ -59,7 +59,7 @@ export default function TodosPage() {
   };
 
   const toggleTodo = async (id: string, completed: boolean) => {
-    await supabase.from("todos" as any).update({ completed: !completed }).eq("id", id);
+    await supabase.from("todos").update({ completed: !completed }).eq("id", id);
     setTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !completed } : t));
   };
 
