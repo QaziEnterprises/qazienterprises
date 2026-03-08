@@ -399,6 +399,9 @@ export default function POSPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleBarcodeScan} />
     </div>
   );
 }
