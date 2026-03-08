@@ -174,6 +174,13 @@ export default function POSPage() {
     printWindow.document.close();
   };
 
+  const handleWhatsApp = () => {
+    if (!invoiceData) return;
+    const items = invoiceData.items.map((item, i) => `${i + 1}. ${item.name} x${item.quantity} = Rs ${item.subtotal.toLocaleString()}`).join("\n");
+    const msg = `*Qazi Enterprises - Invoice*\n\nInvoice: ${invoiceData.invoice_no}\nDate: ${invoiceData.date}\nCustomer: ${invoiceData.customer_name}\n\n*Items:*\n${items}\n\nSubtotal: Rs ${invoiceData.subtotal.toLocaleString()}${invoiceData.discount > 0 ? `\nDiscount: -Rs ${invoiceData.discount.toLocaleString()}` : ""}\n*Total: Rs ${invoiceData.total.toLocaleString()}*\nPayment: ${invoiceData.payment_method.toUpperCase()} (${invoiceData.payment_status})\n\nThank you for your business!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   return (
     <div className="flex gap-6 h-[calc(100vh-6rem)]">
       {/* Product List */}
