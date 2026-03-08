@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { CalendarDays, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, AlertTriangle, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
 import DayTransactionsDialog from "@/components/reports/DayTransactionsDialog";
+import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 interface DailySummary {
   date: string;
@@ -177,6 +178,18 @@ export default function ReportsPage() {
           <CardContent><div className={`text-2xl font-bold ${totals.profit >= 0 ? "text-green-600" : "text-destructive"}`}>Rs {totals.profit.toLocaleString()}</div></CardContent>
         </Card>
       </div>
+
+      {/* Trend Chart */}
+      {!loading && summaries.length > 1 && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Daily Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DailyTrendChart data={summaries} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Daily Table */}
       {loading ? (
