@@ -182,7 +182,6 @@ export default function POSPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const [showCart, setShowCart] = useState(false);
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-6rem)]">
