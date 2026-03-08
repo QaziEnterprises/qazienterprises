@@ -57,6 +57,11 @@ export default function BillsPage() {
 
   const getCustomerName = (id: string | null) => customers.find((c) => c.id === id)?.name || "Walk-in Customer";
 
+  const refreshSales = async () => {
+    const { data } = await supabase.from("sale_transactions").select("*").order("created_at", { ascending: false });
+    setSales(data || []);
+  };
+
   const filtered = sales.filter((s) =>
     s.invoice_no?.toLowerCase().includes(search.toLowerCase()) ||
     getCustomerName(s.customer_id).toLowerCase().includes(search.toLowerCase())
