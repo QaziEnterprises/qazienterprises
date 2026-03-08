@@ -234,7 +234,49 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    let userId: string | null = null;
+
+    // Check if this is a scheduled (cron) call or user-initiated
     const authHeader = req.headers.get("Authorization");
+    const bodyText = await req.text();
+    const bodyJson = bodyText ? JSON.parse(bodyText).catch?.(() => ({})) : {};
+    let isScheduled = false;
+
+    try {
+      const parsed = bodyText ? JSON.parse(bodyText) : {};
+      isScheduled = parsed.scheduled === true;
+    } catch {}
+
+    if (isScheduled) {
+      // Cron job: backup for ALL users who have connected Google Drive
+      const { data: allTokens } = await supabase.from("google_drive_tokens").select("user_id");
+      if (!allTokens || allTokens.length === 0) {
+        return new Response(JSON.stringify({ message: "No connected users to backup" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const results = [];
+      for (const tokenEntry of allTokens) {
+        try {
+          const result = await performBackup(supabase, tokenEntry.user_id);
+          results.push({ user_id: tokenEntry.user_id, ...result });
+        } catch (err) {
+          results.push({ user_id: tokenEntry.user_id, error: err.message });
+        }
+      }
+
+      return new Response(JSON.stringify({ scheduled: true, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // User-initiated: validate JWT
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
@@ -250,13 +292,20 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const userId = claimsData.claims.sub as string;
+    userId = claimsData.claims.sub as string;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const result = await performBackup(supabase, userId);
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
 
+async function performBackup(supabase: any, userId: string) {
     // Get stored tokens
     const { data: tokenRow, error: tokenErr } = await supabase
       .from("google_drive_tokens")
