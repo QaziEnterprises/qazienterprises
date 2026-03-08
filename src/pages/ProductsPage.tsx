@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
 import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
+import { logAction } from "@/lib/auditLog";
 
 interface Product {
   id: string; name: string; sku: string | null; category_id: string | null;
