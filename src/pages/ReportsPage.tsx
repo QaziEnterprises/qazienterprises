@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
-import { CalendarDays, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CalendarDays, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, AlertTriangle, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
+import { toast } from "sonner";
+import DayTransactionsDialog from "@/components/reports/DayTransactionsDialog";
 
 interface DailySummary {
   date: string;
