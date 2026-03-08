@@ -101,11 +101,12 @@ export default function DashboardPage() {
     const todayStr = new Date().toISOString().split("T")[0];
     const fetchToday = async () => {
       try {
-        const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
+        const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }, { data: cashReg }] = await Promise.all([
           supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
           supabase.from("purchases").select("total").eq("date", todayStr),
           supabase.from("expenses").select("amount").eq("date", todayStr),
-          supabase.from("products").select("name, quantity, alert_threshold"),
+          supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price"),
+          supabase.from("cash_register" as any).select("*").eq("date", todayStr).maybeSingle(),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
