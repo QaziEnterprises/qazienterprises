@@ -30,8 +30,8 @@ export default function TodosPage() {
 
   const fetchTodos = async () => {
     try {
-      const { data } = await supabase.from("todos" as any).select("*").order("created_at", { ascending: false });
-      setTodos((data as any as Todo[]) || []);
+      const { data } = await supabase.from("todos").select("*").order("created_at", { ascending: false });
+      setTodos((data as unknown as Todo[]) || []);
     } catch (e) {
       console.error("Todos fetch error:", e);
     } finally {
