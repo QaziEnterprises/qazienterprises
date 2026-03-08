@@ -32,6 +32,7 @@ interface SaleInvoice {
 }
 
 export default function POSPage() {
+  const { role } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
