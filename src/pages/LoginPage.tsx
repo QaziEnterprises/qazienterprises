@@ -38,7 +38,6 @@ async function clearServerAttempts(email: string) {
 }
 
 export default function LoginPage() {
-  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
