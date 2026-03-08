@@ -181,12 +181,19 @@ export default function POSPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const [showCart, setShowCart] = useState(false);
+
   return (
-    <div className="flex gap-6 h-[calc(100vh-6rem)]">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-6rem)]">
       {/* Product List */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold tracking-tight mb-2">Point of Sale</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold tracking-tight">Point of Sale</h1>
+            <Button variant="outline" className="lg:hidden gap-2" onClick={() => setShowCart(!showCart)}>
+              <ShoppingBag className="h-4 w-4" /> Cart ({cart.length})
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search products by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -194,7 +201,7 @@ export default function POSPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
+        <div className={`flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start ${showCart ? "hidden lg:grid" : ""}`}>
           {filteredProducts.map((p) => (
             <motion.button
               key={p.id}
@@ -220,7 +227,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart */}
-      <Card className="w-96 flex flex-col shrink-0">
+      <Card className={`w-full lg:w-96 flex flex-col shrink-0 ${showCart ? "" : "hidden lg:flex"}`}>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
