@@ -124,6 +124,10 @@ function AppRoutes() {
         <Route path="/bills" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
         <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
         <Route path="/ledger" element={<ProtectedRoute adminOnly><LedgerPage /></ProtectedRoute>} />
+        <Route path="/cash-register" element={<ProtectedRoute><CashRegisterPage /></ProtectedRoute>} />
+        <Route path="/todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
+        <Route path="/khata" element={<ProtectedRoute><KhataPage /></ProtectedRoute>} />
+        <Route path="/profit" element={<ProtectedRoute><ProfitCalculatorPage /></ProtectedRoute>} />
         <Route path="/audit" element={<ProtectedRoute adminOnly><AuditPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
