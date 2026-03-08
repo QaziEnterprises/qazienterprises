@@ -175,8 +175,8 @@ export default function BillsPage() {
     if (!deleteSale) return;
     setDeleting(true);
     try {
-      await supabase.from("sale_items").delete().eq("sale_id", deleteSale.id);
-      const { error } = await supabase.from("sale_transactions").delete().eq("id", deleteSale.id);
+      await retryMutation(() => supabase.from("sale_items").delete().eq("sale_id", deleteSale.id));
+      const { error } = await retryMutation(() => supabase.from("sale_transactions").delete().eq("id", deleteSale.id));
       if (error) throw error;
       logAction("delete", "sale", deleteSale.id, `Deleted invoice ${deleteSale.invoice_no} - Rs ${Number(deleteSale.total).toLocaleString()}`);
       toast.success(`Invoice ${deleteSale.invoice_no} deleted`);
