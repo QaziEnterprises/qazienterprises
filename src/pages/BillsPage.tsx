@@ -365,16 +365,12 @@ export default function BillsPage() {
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => viewBill(s)} title="View Invoice">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {role === "admin" && (
-                          <>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditSale(s); setEditOpen(true); }} title="Edit Invoice">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteSale(s)} title="Delete Invoice">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditSale(s); setEditOpen(true); }} title="Edit Invoice">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteSale(s)} title="Delete Invoice">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </td>
                   </motion.tr>
