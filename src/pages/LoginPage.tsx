@@ -14,6 +14,7 @@ const LOCKOUT_DURATION_MS = 60_000; // 1 minute
 const ATTEMPT_WINDOW_MS = 300_000; // 5 minutes
 
 export default function LoginPage() {
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
