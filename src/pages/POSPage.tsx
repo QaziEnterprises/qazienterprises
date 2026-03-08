@@ -304,9 +304,16 @@ export default function POSPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               Invoice Preview
-              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
-                <Printer className="h-4 w-4" /> Print
-              </Button>
+              <div className="flex gap-2">
+                {role === "admin" && (
+                  <Button size="sm" variant="outline" className="gap-2" onClick={handleWhatsApp}>
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" /> Print
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {invoiceData && (
