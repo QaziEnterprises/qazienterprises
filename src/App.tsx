@@ -27,6 +27,7 @@ import TodosPage from "@/pages/TodosPage";
 import KhataPage from "@/pages/KhataPage";
 import ProfitCalculatorPage from "@/pages/ProfitCalculatorPage";
 import BackupPage from "@/pages/BackupPage";
+import PriceListPage from "@/pages/PriceListPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
