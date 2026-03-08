@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle, ShoppingCart, Receipt, DollarSign, Wallet, Unlock, Lock, CheckCircle2 } from "lucide-react";
+import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle, ShoppingCart, Receipt, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
