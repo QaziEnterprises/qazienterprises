@@ -83,7 +83,7 @@ export default function CashRegisterPage() {
       return;
     }
     try {
-      const { error } = await supabase.from("cash_register" as any).insert({
+      const { error } = await supabase.from("cash_register").insert({
         date: todayStr,
         opening_balance: balance,
         status: "open",
