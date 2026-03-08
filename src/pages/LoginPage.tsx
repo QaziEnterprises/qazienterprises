@@ -7,11 +7,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 60_000; // 1 minute
-const ATTEMPT_WINDOW_MS = 300_000; // 5 minutes
+const LOCKOUT_DURATION_MS = 60_000;
+const ATTEMPT_WINDOW_MS = 300_000;
+
+async function checkServerRateLimit(email: string): Promise<{ allowed: boolean; remaining: number }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("rate-limit", {
+      body: { email, action: "check" },
+    });
+    if (error) throw error;
+    return { allowed: data?.allowed ?? true, remaining: data?.remaining ?? MAX_ATTEMPTS };
+  } catch {
+    return { allowed: true, remaining: MAX_ATTEMPTS }; // fail open
+  }
+}
+
+async function recordServerAttempt(email: string) {
+  try {
+    await supabase.functions.invoke("rate-limit", { body: { email, action: "record" } });
+  } catch { /* best-effort */ }
+}
+
+async function clearServerAttempts(email: string) {
+  try {
+    await supabase.functions.invoke("rate-limit", { body: { email, action: "clear" } });
+  } catch { /* best-effort */ }
+}
 
 export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -42,17 +67,15 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check lockout
+    // Client-side lockout check
     if (lockoutEnd && Date.now() < lockoutEnd) {
       toast.error(`Too many attempts. Try again in ${remainingSeconds}s.`);
       return;
     }
 
-    // Clean old attempts outside window
+    // Client-side rate limit
     const now = Date.now();
     attemptsRef.current = attemptsRef.current.filter(t => now - t < ATTEMPT_WINDOW_MS);
-
-    // Check rate limit
     if (attemptsRef.current.length >= MAX_ATTEMPTS) {
       const lockEnd = now + LOCKOUT_DURATION_MS;
       startLockoutTimer(lockEnd);
@@ -61,10 +84,22 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+
+    // Server-side rate limit check
+    const serverCheck = await checkServerRateLimit(email);
+    if (!serverCheck.allowed) {
+      const lockEnd = Date.now() + LOCKOUT_DURATION_MS;
+      startLockoutTimer(lockEnd);
+      toast.error("Too many failed attempts. Please wait 15 minutes.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await signIn(email, password);
     if (error) {
       attemptsRef.current.push(Date.now());
-      const remaining = MAX_ATTEMPTS - attemptsRef.current.length;
+      await recordServerAttempt(email);
+      const remaining = Math.min(MAX_ATTEMPTS - attemptsRef.current.length, serverCheck.remaining - 1);
       if (remaining > 0) {
         toast.error(`${error} (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`);
       } else {
@@ -74,6 +109,7 @@ export default function LoginPage() {
       }
     } else {
       attemptsRef.current = [];
+      await clearServerAttempts(email);
     }
     setLoading(false);
   };

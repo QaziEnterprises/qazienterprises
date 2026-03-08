@@ -313,6 +313,24 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          identifier: string
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          identifier: string
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          identifier?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           created_at: string
