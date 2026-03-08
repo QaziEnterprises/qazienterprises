@@ -229,6 +229,33 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      {/* Date Filter Tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(["all", "today", "week", "month"] as const).map((f) => (
+          <Button key={f} variant={dateFilter === f ? "default" : "outline"} size="sm" onClick={() => setDateFilter(f)} className="capitalize text-xs">
+            {f === "all" ? "All Time" : f === "today" ? "Today" : f === "week" ? "This Week" : "This Month"}
+          </Button>
+        ))}
+      </div>
+
+      {/* Category Summary */}
+      {categorySummary.length > 0 && (
+        <div className="mb-4 rounded-lg border p-4">
+          <h3 className="text-sm font-semibold mb-2">Category Breakdown</h3>
+          <div className="space-y-2">
+            {categorySummary.map((cat) => (
+              <div key={cat.name} className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground w-28 truncate">{cat.name}</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (cat.total / totalExpenses) * 100)}%` }} />
+                </div>
+                <span className="text-sm font-medium w-24 text-right">Rs {cat.total.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search expenses..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
