@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery, retryMutation } from "@/lib/retryFetch";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
@@ -35,8 +36,8 @@ export default function ExpensesPage() {
     setLoading(true);
     try {
       const [{ data: exps }, { data: cats }] = await Promise.all([
-        supabase.from("expenses").select("*").order("date", { ascending: false }),
-        supabase.from("expense_categories").select("*").order("name"),
+        retryQuery(() => supabase.from("expenses").select("*").order("date", { ascending: false })),
+        retryQuery(() => supabase.from("expense_categories").select("*").order("name")),
       ]);
       setExpenses(exps || []);
       setCategories(cats || []);

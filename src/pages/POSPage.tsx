@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery, retryMutation } from "@/lib/retryFetch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
@@ -54,8 +55,8 @@ export default function POSPage() {
     const fetchData = async () => {
       try {
         const [{ data: prods }, { data: custs }] = await Promise.all([
-          supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
-          supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
+          retryQuery(() => supabase.from("products").select("id, name, selling_price, quantity, sku").order("name")),
+          retryQuery(() => supabase.from("contacts").select("id, name").eq("type", "customer").order("name")),
         ]);
         setProducts(prods || []);
         setCustomers(custs || []);

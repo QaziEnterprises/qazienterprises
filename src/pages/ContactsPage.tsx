@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery, retryMutation } from "@/lib/retryFetch";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
@@ -42,7 +43,7 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("contacts").select("*").order("name");
+      const { data, error } = await retryQuery(() => supabase.from("contacts").select("*").order("name"));
       if (error) { toast.error("Failed to load contacts"); console.error(error); }
       else setContacts(data || []);
     } catch (e) {

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery, retryMutation } from "@/lib/retryFetch";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
@@ -38,8 +39,8 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const [{ data: prods }, { data: cats }] = await Promise.all([
-        supabase.from("products").select("*").order("name"),
-        supabase.from("product_categories").select("*").order("name"),
+        retryQuery(() => supabase.from("products").select("*").order("name")),
+        retryQuery(() => supabase.from("product_categories").select("*").order("name")),
       ]);
       setProducts(prods || []);
       setCategories(cats || []);
