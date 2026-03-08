@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Lock, Unlock, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { DollarSign, Lock, Unlock, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Printer } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 
@@ -192,6 +192,48 @@ export default function CashRegisterPage() {
               <CardContent><div className="text-2xl font-bold text-primary">Rs {todayEntry.expected_balance.toLocaleString()}</div></CardContent>
             </Card>
           </div>
+
+          {/* Print End-of-Day Report */}
+          <Button variant="outline" className="gap-2" onClick={() => {
+            if (!todayEntry) return;
+            const w = window.open("", "_blank");
+            if (!w) return;
+            w.document.write(`<html><head><title>End of Day Report - ${todayEntry.date}</title>
+              <style>
+                body { font-family: 'Segoe UI', sans-serif; padding: 24px; color: #222; font-size: 13px; }
+                h1 { font-size: 20px; margin-bottom: 2px; }
+                .sub { color: #666; font-size: 11px; margin-bottom: 16px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                th, td { padding: 8px 12px; border-bottom: 1px solid #ddd; text-align: left; }
+                th { background: #f5f5f5; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+                .right { text-align: right; }
+                .total { font-weight: 700; font-size: 15px; }
+                .green { color: #16a34a; } .red { color: #dc2626; }
+                @media print { body { padding: 0; } }
+              </style></head><body>
+              <h1>Qazi Enterprises — Daily Cash Report</h1>
+              <p class="sub">Date: ${format(new Date(todayEntry.date), "EEEE, dd MMMM yyyy")} • Status: ${todayEntry.status.toUpperCase()}</p>
+              <table>
+                <tr><th>Description</th><th class="right">Amount (Rs)</th></tr>
+                <tr><td>Opening Balance</td><td class="right">${todayEntry.opening_balance.toLocaleString()}</td></tr>
+                <tr><td class="green">Cash In (Sales)</td><td class="right green">+${todayEntry.cash_in.toLocaleString()}</td></tr>
+                <tr><td class="red">Cash Out (Expenses & Purchases)</td><td class="right red">-${todayEntry.cash_out.toLocaleString()}</td></tr>
+                <tr><td class="total">Expected Balance</td><td class="right total">${todayEntry.expected_balance.toLocaleString()}</td></tr>
+                ${todayEntry.actual_balance !== null ? `
+                  <tr><td>Actual Cash in Hand</td><td class="right">${todayEntry.actual_balance.toLocaleString()}</td></tr>
+                  <tr><td class="total">Discrepancy</td><td class="right total ${todayEntry.discrepancy === 0 ? 'green' : 'red'}">${todayEntry.discrepancy.toLocaleString()}</td></tr>
+                ` : ''}
+              </table>
+              ${todayEntry.notes ? `<p><strong>Notes:</strong> ${todayEntry.notes}</p>` : ''}
+              <p style="margin-top:24px;text-align:center;font-size:10px;color:#999;border-top:1px dashed #ccc;padding-top:8px">
+                Generated on ${format(new Date(), "dd MMM yyyy, hh:mm a")} — Qazi Enterprises
+              </p>
+              <script>window.onload=()=>{window.print();window.close();}</script>
+              </body></html>`);
+            w.document.close();
+          }}>
+            <Printer className="h-4 w-4" /> Print End-of-Day Report
+          </Button>
 
           {/* Close Drawer Section */}
           {todayEntry.status === "open" && (

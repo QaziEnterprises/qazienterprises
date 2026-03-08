@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer, MessageCircle } from "lucide-react";
+import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer, MessageCircle, ScanLine } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { logAction } from "@/lib/auditLog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface Product { id: string; name: string; selling_price: number; quantity: number; sku: string | null; }
 interface Customer { id: string; name: string; }
@@ -46,6 +47,7 @@ export default function POSPage() {
   const [invoiceData, setInvoiceData] = useState<SaleInvoice | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -181,6 +183,16 @@ export default function POSPage() {
     const msg = `*Qazi Enterprises - Invoice*\n\nInvoice: ${invoiceData.invoice_no}\nDate: ${invoiceData.date}\nCustomer: ${invoiceData.customer_name}\n\n*Items:*\n${items}\n\nSubtotal: Rs ${invoiceData.subtotal.toLocaleString()}${invoiceData.discount > 0 ? `\nDiscount: -Rs ${invoiceData.discount.toLocaleString()}` : ""}\n*Total: Rs ${invoiceData.total.toLocaleString()}*\nPayment: ${invoiceData.payment_method.toUpperCase()} (${invoiceData.payment_status})\n\nThank you for your business!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
+  const handleBarcodeScan = (code: string) => {
+    const product = products.find((p) => p.sku?.toLowerCase() === code.toLowerCase() || p.name.toLowerCase().includes(code.toLowerCase()));
+    if (product) {
+      addToCart(product);
+      toast.success(`Added: ${product.name}`);
+    } else {
+      setSearch(code);
+      toast.error(`No product found for "${code}". Showing search results.`);
+    }
+  };
 
 
   return (
@@ -190,9 +202,14 @@ export default function POSPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold tracking-tight">Point of Sale</h1>
-            <Button variant="outline" className="lg:hidden gap-2" onClick={() => setShowCart(!showCart)}>
-              <ShoppingBag className="h-4 w-4" /> Cart ({cart.length})
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" size="sm" onClick={() => setScannerOpen(true)}>
+                <ScanLine className="h-4 w-4" /> Scan
+              </Button>
+              <Button variant="outline" className="lg:hidden gap-2" size="sm" onClick={() => setShowCart(!showCart)}>
+                <ShoppingBag className="h-4 w-4" /> Cart ({cart.length})
+              </Button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -382,6 +399,9 @@ export default function POSPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleBarcodeScan} />
     </div>
   );
 }

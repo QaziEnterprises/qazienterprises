@@ -300,16 +300,22 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">{today.todayExpensesCount} expense(s)</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className={`relative overflow-hidden ${today.todayProfit >= 0 ? "border-green-300 dark:border-green-800" : "border-destructive/30"}`}>
+            <div className={`absolute inset-0 opacity-5 ${today.todayProfit >= 0 ? "bg-green-500" : "bg-destructive"}`} />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Profit</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Today's Net Profit</CardTitle>
               <DollarSign className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+              <div className={`text-3xl font-bold ${today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
                 Rs {today.todayProfit.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Sales - Purchases - Expenses</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={today.todayProfit >= 0 ? "default" : "destructive"} className="text-[10px]">
+                  {today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}% margin` : "No sales"}
+                </Badge>
+                <span className="text-xs text-muted-foreground">Sales - Purchases - Expenses</span>
+              </div>
             </CardContent>
           </Card>
         </div>

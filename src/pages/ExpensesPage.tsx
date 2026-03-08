@@ -50,11 +50,37 @@ export default function ExpensesPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = expenses.filter((e) =>
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all");
+
+  const getDateFilteredExpenses = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    return expenses.filter((e) => {
+      if (dateFilter === "today") return e.date === todayStr;
+      if (dateFilter === "week") {
+        const d = new Date(e.date);
+        const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+        return diff <= 7;
+      }
+      if (dateFilter === "month") {
+        const d = new Date(e.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  };
+
+  const filtered = getDateFilteredExpenses().filter((e) =>
     e.description?.toLowerCase().includes(search.toLowerCase()) || e.reference_no?.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalExpenses = filtered.reduce((s, e) => s + Number(e.amount), 0);
+
+  const categorySummary = categories.map((cat) => {
+    const catExpenses = filtered.filter((e) => e.category_id === cat.id);
+    const total = catExpenses.reduce((s, e) => s + Number(e.amount), 0);
+    return { name: cat.name, total };
+  }).filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
 
   const handleSave = async () => {
     if (!form.amount) { toast.error("Amount is required"); return; }
@@ -202,6 +228,33 @@ export default function ExpensesPage() {
           </Dialog>
         </div>
       </div>
+
+      {/* Date Filter Tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(["all", "today", "week", "month"] as const).map((f) => (
+          <Button key={f} variant={dateFilter === f ? "default" : "outline"} size="sm" onClick={() => setDateFilter(f)} className="capitalize text-xs">
+            {f === "all" ? "All Time" : f === "today" ? "Today" : f === "week" ? "This Week" : "This Month"}
+          </Button>
+        ))}
+      </div>
+
+      {/* Category Summary */}
+      {categorySummary.length > 0 && (
+        <div className="mb-4 rounded-lg border p-4">
+          <h3 className="text-sm font-semibold mb-2">Category Breakdown</h3>
+          <div className="space-y-2">
+            {categorySummary.map((cat) => (
+              <div key={cat.name} className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground w-28 truncate">{cat.name}</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (cat.total / totalExpenses) * 100)}%` }} />
+                </div>
+                <span className="text-sm font-medium w-24 text-right">Rs {cat.total.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

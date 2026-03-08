@@ -1,10 +1,11 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator, Cloud } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator, Cloud, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import LowStockAlerts from "@/components/LowStockAlerts";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -30,6 +31,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/receivables", icon: Users, label: "Receivables", adminOnly: false },
     { to: "/sales", icon: FileSpreadsheet, label: "Sales Summary", adminOnly: false },
     { to: "/backup", icon: Cloud, label: "Google Backup", adminOnly: false },
+    { to: "/price-list", icon: Tag, label: "Price List", adminOnly: false },
     { to: "/ledger", icon: BookOpen, label: "Customer Ledger", adminOnly: true },
     { to: "/audit", icon: ClipboardList, label: "Audit Trail", adminOnly: true },
     { to: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
@@ -93,10 +95,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {isMobile && sidebarOpen && <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setSidebarOpen(false)} />}
       {sidebar}
       <main className={cn("flex-1", !isMobile && "pl-64")}>
+        {!isMobile && (
+          <div className="sticky top-0 z-30 flex h-12 items-center justify-end border-b bg-background px-6">
+            <LowStockAlerts />
+          </div>
+        )}
         {isMobile && (
           <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
             <button onClick={() => setSidebarOpen(true)}><Menu className="h-5 w-5" /></button>
-            <span className="font-semibold">Qazi Enterprises</span>
+            <span className="font-semibold flex-1">Qazi Enterprises</span>
+            <LowStockAlerts />
           </div>
         )}
         <div className="p-4 lg:p-8">{children}</div>
