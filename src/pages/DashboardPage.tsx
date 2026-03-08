@@ -131,9 +131,23 @@ export default function DashboardPage() {
 
         setLowStockProducts(
           (products || [])
-            .filter((p) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
-            .map((p) => ({ name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0 }))
+            .filter((p: any) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
+            .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
+
+        // Cash register status
+        if (cashReg) {
+          const cr = cashReg as any;
+          const cashIn = (todaySales || []).filter((s: any) => s.payment_method === "cash").reduce((sum: number, s: any) => sum + Number(s.total || 0), 0);
+          const cashOut = (todayExpenses || []).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+          setCashRegister({
+            status: cr.status,
+            opening_balance: Number(cr.opening_balance || 0),
+            cash_in: cashIn,
+            cash_out: cashOut,
+            expected_balance: Number(cr.opening_balance || 0) + cashIn - cashOut,
+          });
+        }
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       }
