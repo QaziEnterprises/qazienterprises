@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_history: {
+        Row: {
+          created_at: string
+          drive_file_id: string | null
+          error_message: string | null
+          file_name: string
+          id: string
+          size_bytes: number | null
+          status: string
+          tables_backed_up: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drive_file_id?: string | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          size_bytes?: number | null
+          status?: string
+          tables_backed_up?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drive_file_id?: string | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          size_bytes?: number | null
+          status?: string
+          tables_backed_up?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_register: {
         Row: {
           actual_balance: number | null
@@ -246,6 +282,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_drive_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       product_categories: {
         Row: {

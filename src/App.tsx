@@ -25,6 +25,7 @@ import CashRegisterPage from "@/pages/CashRegisterPage";
 import TodosPage from "@/pages/TodosPage";
 import KhataPage from "@/pages/KhataPage";
 import ProfitCalculatorPage from "@/pages/ProfitCalculatorPage";
+import BackupPage from "@/pages/BackupPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -128,6 +129,7 @@ function AppRoutes() {
         <Route path="/todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
         <Route path="/khata" element={<ProtectedRoute><KhataPage /></ProtectedRoute>} />
         <Route path="/profit" element={<ProtectedRoute><ProfitCalculatorPage /></ProtectedRoute>} />
+        <Route path="/backup" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
         <Route path="/audit" element={<ProtectedRoute adminOnly><AuditPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

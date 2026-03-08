@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator, Cloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/inventory", icon: Package, label: "Inventory", adminOnly: false },
     { to: "/receivables", icon: Users, label: "Receivables", adminOnly: false },
     { to: "/sales", icon: FileSpreadsheet, label: "Sales Summary", adminOnly: false },
+    { to: "/backup", icon: Cloud, label: "Google Backup", adminOnly: false },
     { to: "/ledger", icon: BookOpen, label: "Customer Ledger", adminOnly: true },
     { to: "/audit", icon: ClipboardList, label: "Audit Trail", adminOnly: true },
     { to: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
