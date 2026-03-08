@@ -202,7 +202,7 @@ export default function ReportsPage() {
             </thead>
             <tbody>
               {summaries.map((d, i) => (
-                <motion.tr key={d.date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b last:border-0 hover:bg-muted/30">
+                <motion.tr key={d.date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b last:border-0 hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedDate(d.date)}>
                   <td className="px-4 py-3 font-medium">{d.date}</td>
                   <td className="px-4 py-3 text-right text-green-600">Rs {d.totalSales.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-blue-600">Rs {d.totalPurchases.toLocaleString()}</td>
