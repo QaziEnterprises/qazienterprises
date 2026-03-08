@@ -47,6 +47,7 @@ export default function POSPage() {
   const [invoiceData, setInvoiceData] = useState<SaleInvoice | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
