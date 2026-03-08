@@ -76,7 +76,7 @@ export default function DashboardPage() {
           retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
           retryQuery(() => supabase.from("expenses").select("amount").eq("date", todayStr)),
           retryQuery(() => supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price")),
-          retryQuery(() => supabase.from("contacts").select("*", { count: "exact", head: true })),
+          retryQuery(() => supabase.from("contacts").select("*", { count: "exact", head: true }) as any),
           retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
           retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
