@@ -33,6 +33,7 @@ interface TodaySummary {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalItems: 0, totalInventoryValue: 0, totalReceivables: 0,
     totalParties: 0, totalCashSales: 0, totalUnpaid: 0,
@@ -42,8 +43,9 @@ export default function DashboardPage() {
   const [breakdownData, setBreakdownData] = useState<{ name: string; value: number }[]>([]);
   const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<{ name: string; quantity: number; alert_threshold: number }[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; quantity: number; alert_threshold: number; purchase_price: number }[]>([]);
   const [today, setToday] = useState<TodaySummary>({ todaySales: 0, todayPurchases: 0, todayExpenses: 0, todayProfit: 0, todaySalesCount: 0, todayPurchasesCount: 0, todayExpensesCount: 0, todayJC: 0, todayEP: 0, todayBT: 0, todayCash: 0 });
+  const [cashRegister, setCashRegister] = useState<{ status: string; opening_balance: number; cash_in: number; cash_out: number; expected_balance: number } | null>(null);
 
   useEffect(() => {
     // Legacy localStorage data
