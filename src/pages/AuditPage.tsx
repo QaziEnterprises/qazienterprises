@@ -33,7 +33,7 @@ export default function AuditPage() {
       const { data, error } = await query;
       if (error) { console.error("Audit fetch error:", error); toast.error("Failed to load audit logs"); }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setLogs((data as AuditLog[]) || []);
+      setLogs((data as unknown as AuditLog[]) || []);
       setLoading(false);
     };
     fetch();
