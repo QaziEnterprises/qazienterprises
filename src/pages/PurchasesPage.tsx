@@ -12,6 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery, retryMutation } from "@/lib/retryFetch";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAction } from "@/lib/auditLog";
@@ -68,9 +69,9 @@ export default function PurchasesPage() {
     setLoading(true);
     try {
       const [{ data: purch }, { data: supps }, { data: prods }] = await Promise.all([
-        supabase.from("purchases").select("*").order("date", { ascending: false }),
-        supabase.from("contacts").select("id, name").eq("type", "supplier").order("name"),
-        supabase.from("products").select("id, name, purchase_price, quantity").order("name"),
+        retryQuery(() => supabase.from("purchases").select("*").order("date", { ascending: false })),
+        retryQuery(() => supabase.from("contacts").select("id, name").eq("type", "supplier").order("name")),
+        retryQuery(() => supabase.from("products").select("id, name, purchase_price, quantity").order("name")),
       ]);
       setPurchases(purch || []);
       setSuppliers(supps || []);

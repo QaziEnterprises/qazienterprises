@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { retryQuery } from "@/lib/retryFetch";
 import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -66,18 +67,18 @@ export default function DashboardPage() {
           { data: todayPurchases },
           { data: todayExpenses },
           { data: products },
-          { count: contactsCount },
+          contactsResult,
           { data: pendingSales },
           { data: recent },
           { data: debtors },
         ] = await Promise.all([
-          supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
-          supabase.from("purchases").select("total").eq("date", todayStr),
-          supabase.from("expenses").select("amount").eq("date", todayStr),
-          supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price"),
-          supabase.from("contacts").select("*", { count: "exact", head: true }),
-          supabase.from("sale_transactions").select("total").eq("payment_status", "due"),
-          supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5),
+          retryQuery(() => supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr)),
+          retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
+          retryQuery(() => supabase.from("expenses").select("amount").eq("date", todayStr)),
+          retryQuery(() => supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price")),
+          retryQuery(() => supabase.from("contacts").select("*", { count: "exact", head: true }) as any),
+          retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
+          retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
         ]);
 
@@ -99,7 +100,7 @@ export default function DashboardPage() {
 
         const allProducts = products || [];
         setTotalProducts(allProducts.length);
-        setTotalContacts(contactsCount || 0);
+        setTotalContacts((contactsResult as any)?.count || 0);
         setPendingPayments((pendingSales || []).reduce((s, r) => s + Number(r.total || 0), 0));
         setRecentSales((recent || []).map((r: any) => ({ id: r.id, invoice_no: r.invoice_no, total: Number(r.total || 0), payment_method: r.payment_method, date: r.date, customer_type: r.customer_type })));
         setTopDebtors((debtors || []).map((d: any) => ({ id: d.id, name: d.name, current_balance: Number(d.current_balance || 0) })));
