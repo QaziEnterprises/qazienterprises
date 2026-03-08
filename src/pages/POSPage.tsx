@@ -183,6 +183,16 @@ export default function POSPage() {
     const msg = `*Qazi Enterprises - Invoice*\n\nInvoice: ${invoiceData.invoice_no}\nDate: ${invoiceData.date}\nCustomer: ${invoiceData.customer_name}\n\n*Items:*\n${items}\n\nSubtotal: Rs ${invoiceData.subtotal.toLocaleString()}${invoiceData.discount > 0 ? `\nDiscount: -Rs ${invoiceData.discount.toLocaleString()}` : ""}\n*Total: Rs ${invoiceData.total.toLocaleString()}*\nPayment: ${invoiceData.payment_method.toUpperCase()} (${invoiceData.payment_status})\n\nThank you for your business!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
+  const handleBarcodeScan = (code: string) => {
+    const product = products.find((p) => p.sku?.toLowerCase() === code.toLowerCase() || p.name.toLowerCase().includes(code.toLowerCase()));
+    if (product) {
+      addToCart(product);
+      toast.success(`Added: ${product.name}`);
+    } else {
+      setSearch(code);
+      toast.error(`No product found for "${code}". Showing search results.`);
+    }
+  };
 
 
   return (
