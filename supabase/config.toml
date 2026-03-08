@@ -1,1 +1,10 @@
 project_id = "wcnomdrzqbnaaleaqfsh"
+
+[functions.google-drive-auth]
+verify_jwt = false
+
+[functions.google-drive-callback]
+verify_jwt = false
+
+[functions.google-drive-backup]
+verify_jwt = false
