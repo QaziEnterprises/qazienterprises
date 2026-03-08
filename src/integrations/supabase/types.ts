@@ -47,6 +47,57 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register: {
+        Row: {
+          actual_balance: number | null
+          cash_in: number
+          cash_out: number
+          closed_by: string | null
+          created_at: string
+          date: string
+          discrepancy: number | null
+          expected_balance: number
+          id: string
+          notes: string | null
+          opened_by: string | null
+          opening_balance: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_balance?: number | null
+          cash_in?: number
+          cash_out?: number
+          closed_by?: string | null
+          created_at?: string
+          date?: string
+          discrepancy?: number | null
+          expected_balance?: number
+          id?: string
+          notes?: string | null
+          opened_by?: string | null
+          opening_balance?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_balance?: number | null
+          cash_in?: number
+          cash_out?: number
+          closed_by?: string | null
+          created_at?: string
+          date?: string
+          discrepancy?: number | null
+          expected_balance?: number
+          id?: string
+          notes?: string | null
+          opened_by?: string | null
+          opening_balance?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           address: string | null
@@ -489,6 +540,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      todos: {
+        Row: {
+          completed: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          priority: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

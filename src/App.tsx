@@ -21,6 +21,10 @@ import BillsPage from "@/pages/BillsPage";
 import SummaryPage from "@/pages/SummaryPage";
 import LedgerPage from "@/pages/LedgerPage";
 import AuditPage from "@/pages/AuditPage";
+import CashRegisterPage from "@/pages/CashRegisterPage";
+import TodosPage from "@/pages/TodosPage";
+import KhataPage from "@/pages/KhataPage";
+import ProfitCalculatorPage from "@/pages/ProfitCalculatorPage";
 import NotFound from "./pages/NotFound";
 import { initializeDefaultData } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -120,6 +124,10 @@ function AppRoutes() {
         <Route path="/bills" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
         <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
         <Route path="/ledger" element={<ProtectedRoute adminOnly><LedgerPage /></ProtectedRoute>} />
+        <Route path="/cash-register" element={<ProtectedRoute><CashRegisterPage /></ProtectedRoute>} />
+        <Route path="/todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
+        <Route path="/khata" element={<ProtectedRoute><KhataPage /></ProtectedRoute>} />
+        <Route path="/profit" element={<ProtectedRoute><ProfitCalculatorPage /></ProtectedRoute>} />
         <Route path="/audit" element={<ProtectedRoute adminOnly><AuditPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

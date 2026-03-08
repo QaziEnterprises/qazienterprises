@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/purchases", icon: ShoppingCart, label: "Purchases", adminOnly: false },
     { to: "/expenses", icon: Receipt, label: "Expenses", adminOnly: false },
     { to: "/reports", icon: BarChart3, label: "Daily Reports", adminOnly: false },
+    { to: "/cash-register", icon: Wallet, label: "Cash Register", adminOnly: false },
+    { to: "/khata", icon: BookMarked, label: "Khata Book", adminOnly: false },
+    { to: "/profit", icon: Calculator, label: "Profit Calculator", adminOnly: false },
+    { to: "/todos", icon: StickyNote, label: "Quick Notes", adminOnly: false },
     { to: "/summary", icon: CalendarDays, label: "Monthly Summary", adminOnly: false },
     { to: "/inventory", icon: Package, label: "Inventory", adminOnly: false },
     { to: "/receivables", icon: Users, label: "Receivables", adminOnly: false },
