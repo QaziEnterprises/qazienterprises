@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
