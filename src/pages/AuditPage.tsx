@@ -32,6 +32,7 @@ export default function AuditPage() {
       if (dateTo) query = query.lte("created_at", dateTo + "T23:59:59");
       const { data, error } = await query;
       if (error) { console.error("Audit fetch error:", error); toast.error("Failed to load audit logs"); }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setLogs((data as AuditLog[]) || []);
       setLoading(false);
     };
