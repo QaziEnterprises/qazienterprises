@@ -85,7 +85,7 @@ export default function BillsPage() {
     customers.find((c) => c.id === id)?.name || "Walk-in Customer";
 
   const refreshSales = async () => {
-    const { data } = await supabase.from("sale_transactions").select("*").order("created_at", { ascending: false });
+    const { data } = await retryQuery(() => supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }));
     setSales(data || []);
   };
 
