@@ -66,8 +66,8 @@ export default function BillsPage() {
       setLoading(true);
       try {
         const [{ data: s }, { data: c }] = await Promise.all([
-          supabase.from("sale_transactions").select("*").order("created_at", { ascending: false }),
-          supabase.from("contacts").select("id, name").eq("type", "customer"),
+          retryQuery(() => supabase.from("sale_transactions").select("*").order("created_at", { ascending: false })),
+          retryQuery(() => supabase.from("contacts").select("id, name").eq("type", "customer")),
         ]);
         setSales(s || []);
         setCustomers(c || []);
