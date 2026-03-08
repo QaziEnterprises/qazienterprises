@@ -73,7 +73,7 @@ export default function ReportsPage() {
       }
     };
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, refreshKey]);
 
   const totals = summaries.reduce(
     (acc, d) => ({
