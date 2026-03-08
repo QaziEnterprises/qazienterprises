@@ -79,10 +79,12 @@ export default function ContactsPage() {
       const { error } = await supabase.from("contacts").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Contact updated");
+      logAction("update", "contact", editingId, `Updated contact ${form.name}`);
     } else {
-      const { error } = await supabase.from("contacts").insert(payload);
+      const { data, error } = await supabase.from("contacts").insert(payload).select().single();
       if (error) { toast.error("Failed to add contact"); return; }
       toast.success("Contact added");
+      logAction("create", "contact", data?.id || "", `Added ${form.type} ${form.name}`);
     }
     setDialogOpen(false);
     setEditingId(null);
