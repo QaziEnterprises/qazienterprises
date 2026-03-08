@@ -95,6 +95,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {isMobile && sidebarOpen && <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setSidebarOpen(false)} />}
       {sidebar}
       <main className={cn("flex-1", !isMobile && "pl-64")}>
+        {!isMobile && (
+          <div className="sticky top-0 z-30 flex h-12 items-center justify-end border-b bg-background px-6">
+            <LowStockAlerts />
+          </div>
+        )}
         {isMobile && (
           <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
             <button onClick={() => setSidebarOpen(true)}><Menu className="h-5 w-5" /></button>
