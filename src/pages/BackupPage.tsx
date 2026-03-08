@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Cloud, CloudOff, Download, RefreshCw, CheckCircle2, XCircle, Loader2, HardDrive, Clock } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Cloud, CloudOff, HardDrive, Clock, CheckCircle2, XCircle, Loader2,
+  RefreshCw, RotateCcw, Timer, FileJson, AlertTriangle,
+} from "lucide-react";
 import { format } from "date-fns";
 
 interface BackupRecord {
@@ -20,6 +26,13 @@ interface BackupRecord {
   created_at: string;
 }
 
+interface DriveFile {
+  id: string;
+  name: string;
+  size: string;
+  createdTime: string;
+}
+
 export default function BackupPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -29,6 +42,14 @@ export default function BackupPage() {
   const [backingUp, setBackingUp] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [history, setHistory] = useState<BackupRecord[]>([]);
+
+  // Restore state
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<DriveFile | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [confirmRestore, setConfirmRestore] = useState(false);
 
   useEffect(() => {
     checkConnection();
@@ -102,11 +123,54 @@ export default function BackupPage() {
     toast({ title: "Disconnected", description: "Google Drive has been disconnected." });
   }
 
-  function formatBytes(bytes: number | null) {
-    if (!bytes) return "—";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  async function openRestoreDialog() {
+    setRestoreDialogOpen(true);
+    setLoadingFiles(true);
+    setSelectedFile(null);
+    setConfirmRestore(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("google-drive-restore", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: { action: "list" },
+      });
+      setDriveFiles(res.data?.files || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setLoadingFiles(false);
+  }
+
+  async function executeRestore() {
+    if (!selectedFile) return;
+    setRestoring(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("google-drive-restore", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: { action: "restore", file_id: selectedFile.id },
+      });
+      if (res.data?.success) {
+        toast({
+          title: "Restore Complete!",
+          description: `${res.data.tables_restored} tables restored with ${res.data.total_records} records.`,
+        });
+        setRestoreDialogOpen(false);
+      } else {
+        toast({ title: "Restore Failed", description: res.data?.error || "Unknown error", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setRestoring(false);
+  }
+
+  function formatBytes(bytes: number | string | null) {
+    const n = typeof bytes === "string" ? parseInt(bytes) : bytes;
+    if (!n) return "—";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   if (loading) {
@@ -121,28 +185,31 @@ export default function BackupPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Google Drive Backup</h1>
-        <p className="text-muted-foreground">Keep your business data safe with automated backups to Google Drive.</p>
+        <p className="text-muted-foreground">Keep your business data safe with cloud backups.</p>
       </div>
 
-      {/* Connection Status */}
+      {/* Connection + Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {connected ? <Cloud className="h-5 w-5 text-green-600" /> : <CloudOff className="h-5 w-5 text-muted-foreground" />}
+            {connected ? <Cloud className="h-5 w-5 text-primary" /> : <CloudOff className="h-5 w-5 text-muted-foreground" />}
             Google Drive Connection
           </CardTitle>
           <CardDescription>
             {connected
-              ? "Your Google Drive is connected and ready for backups."
+              ? "Connected. Automatic backups run daily at midnight."
               : "Connect your Google account to enable cloud backups."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-3">
+        <CardContent className="flex flex-wrap gap-3">
           {connected ? (
             <>
               <Button onClick={runBackup} disabled={backingUp}>
                 {backingUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HardDrive className="mr-2 h-4 w-4" />}
                 {backingUp ? "Backing up..." : "Backup Now"}
+              </Button>
+              <Button variant="secondary" onClick={openRestoreDialog}>
+                <RotateCcw className="mr-2 h-4 w-4" /> Restore from Backup
               </Button>
               <Button variant="outline" onClick={disconnectDrive}>
                 Disconnect
@@ -157,6 +224,28 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
+      {/* Auto-Backup Status */}
+      {connected && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Timer className="h-5 w-5" />
+              Automatic Daily Backup
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Badge variant="default" className="gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Active
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                Runs every day at <strong>12:00 AM (midnight UTC)</strong>. All connected accounts are backed up automatically.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Backup History */}
       <Card>
         <CardHeader>
@@ -164,18 +253,18 @@ export default function BackupPage() {
             <Clock className="h-5 w-5" />
             Backup History
           </CardTitle>
-          <CardDescription>Your recent backups stored in the QaziEnterprisesBackups folder.</CardDescription>
+          <CardDescription>Your recent backups stored in QaziEnterprisesBackups folder.</CardDescription>
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No backups yet. Connect Google Drive and create your first backup.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">No backups yet.</p>
           ) : (
             <div className="space-y-3">
               {history.map((b) => (
                 <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
                     {b.status === "completed" ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                     ) : (
                       <XCircle className="h-5 w-5 text-destructive shrink-0" />
                     )}
@@ -201,21 +290,100 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
-      {/* Info */}
+      {/* What gets backed up */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">What gets backed up?</CardTitle>
+          <CardDescription>Universal AI-ready format with full schema metadata.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
             {["Contacts", "Products", "Categories", "Purchases", "Sales", "Expenses", "Daily Summaries", "Cash Register", "Todos"].map((t) => (
               <div key={t} className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {t}
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> {t}
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Restore Dialog */}
+      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" /> Restore from Backup
+            </DialogTitle>
+            <DialogDescription>
+              Select a backup file from Google Drive to restore your data.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingFiles ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : driveFiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No backup files found.</p>
+          ) : !confirmRestore ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {driveFiles.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSelectedFile(f)}
+                  className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent ${
+                    selectedFile?.id === f.id ? "border-primary bg-accent" : ""
+                  }`}
+                >
+                  <FileJson className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{f.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(f.createdTime), "MMM d, yyyy h:mm a")} · {formatBytes(f.size)}
+                    </p>
+                  </div>
+                  {selectedFile?.id === f.id && (
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold">This will replace ALL current data</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Restoring from <strong>{selectedFile?.name}</strong> will delete existing records and replace them with the backup data. This cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!confirmRestore ? (
+              <Button
+                onClick={() => setConfirmRestore(true)}
+                disabled={!selectedFile}
+              >
+                Next
+              </Button>
+            ) : (
+              <div className="flex gap-2 w-full justify-end">
+                <Button variant="outline" onClick={() => setConfirmRestore(false)}>
+                  Back
+                </Button>
+                <Button variant="destructive" onClick={executeRestore} disabled={restoring}>
+                  {restoring ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                  {restoring ? "Restoring..." : "Confirm Restore"}
+                </Button>
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
