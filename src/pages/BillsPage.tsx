@@ -179,9 +179,14 @@ export default function BillsPage() {
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
                     {role === "admin" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteSale(s)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </td>
                 </motion.tr>
