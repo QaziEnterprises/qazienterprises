@@ -91,11 +91,6 @@ export default function DashboardPage() {
       { name: "Settled", value: zero.length },
     ].filter((d) => d.value > 0));
 
-    const lowStock = inv.filter((item) => {
-      const threshold = (item as any).alertThreshold;
-      return threshold && threshold > 0 && item.quantity <= threshold;
-    });
-    setLowStockItems(lowStock);
 
     // Fetch today's data from Supabase
     const todayStr = new Date().toISOString().split("T")[0];
