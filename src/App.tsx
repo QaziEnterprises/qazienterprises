@@ -10,6 +10,7 @@ import InventoryPage from "@/pages/InventoryPage";
 import ReceivablesPage from "@/pages/ReceivablesPage";
 import SalesPage from "@/pages/SalesPage";
 import LoginPage from "@/pages/LoginPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AdminPage from "@/pages/AdminPage";
 import ContactsPage from "@/pages/ContactsPage";
 import ProductsPage from "@/pages/ProductsPage";
@@ -106,7 +107,7 @@ function AppRoutes() {
     );
   }
 
-  if (!user) return <Routes><Route path="/login" element={<LoginPage />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
+  if (!user) return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
 
   return (
     <AppLayout>
