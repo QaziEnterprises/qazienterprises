@@ -85,9 +85,8 @@ export default function ReportsPage() {
     { sales: 0, purchases: 0, expenses: 0, profit: 0 }
   );
 
-  const fetchData = useCallback(() => {
-    // trigger re-fetch by toggling dates
-    setStartDate((s) => s);
+  const handleDataChanged = useCallback(() => {
+    setRefreshKey((k) => k + 1);
   }, []);
 
   return (
