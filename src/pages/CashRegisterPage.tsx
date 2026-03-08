@@ -50,7 +50,7 @@ export default function CashRegisterPage() {
         (todayPurchases || []).filter((p: any) => p.payment_method === "cash").reduce((sum: number, p: any) => sum + Number(p.total || 0), 0);
 
       if (todayData) {
-        const entry = todayData as any as CashRegisterEntry;
+        const entry = todayData as unknown as CashRegisterEntry;
         entry.cash_in = cashIn;
         entry.cash_out = cashOut;
         entry.expected_balance = entry.opening_balance + cashIn - cashOut;
