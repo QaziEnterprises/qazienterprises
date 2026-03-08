@@ -83,12 +83,37 @@ export default function ReportsPage() {
     { sales: 0, purchases: 0, expenses: 0, profit: 0 }
   );
 
+  const fetchData = useCallback(() => {
+    // trigger re-fetch by toggling dates
+    setStartDate((s) => s);
+  }, []);
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Daily Reports</h1>
-        <p className="text-sm text-muted-foreground">Sales, purchases & expenses summary</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Daily Reports</h1>
+          <p className="text-sm text-muted-foreground">Sales, purchases & expenses summary</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" disabled={summaries.length === 0} onClick={() => {
+            exportToExcel(summaries.map(d => ({
+              Date: d.date, Sales: d.totalSales, Purchases: d.totalPurchases,
+              Expenses: d.totalExpenses, "Net Profit": d.profit,
+              "Sales Count": d.salesCount, "Purchases Count": d.purchasesCount, "Expenses Count": d.expensesCount,
+            })), "Daily_Reports");
+            toast.success("Exported to Excel");
+          }}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" disabled={summaries.length === 0} onClick={() => {
+            printAsPDF("Daily Reports", ["Date", "Sales", "Purchases", "Expenses", "Net Profit"],
+              summaries.map(d => [d.date, `Rs ${d.totalSales.toLocaleString()}`, `Rs ${d.totalPurchases.toLocaleString()}`,
+                `Rs ${d.totalExpenses.toLocaleString()}`, `Rs ${d.profit.toLocaleString()}`])
+            );
+          }}><Download className="h-4 w-4" /> PDF</Button>
+        </div>
       </div>
+
+      <DayTransactionsDialog open={!!selectedDate} onOpenChange={(o) => !o && setSelectedDate(null)} date={selectedDate || ""} onDataChanged={fetchData} />
 
       {/* Low Stock Alert */}
       {lowStockProducts.length > 0 && (
