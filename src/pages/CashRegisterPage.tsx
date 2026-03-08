@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, Lock, Unlock, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { DollarSign, Lock, Unlock, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Printer } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 
