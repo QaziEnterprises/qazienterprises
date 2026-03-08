@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Search, X, ShoppingCart, Trash2, Save } from "lucide-react";
+import { Plus, Search, X, ShoppingCart, Trash2, Save, Pencil, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -17,6 +21,10 @@ interface Purchase {
   id: string; supplier_id: string | null; date: string; reference_no: string | null;
   total: number; discount: number; payment_status: string; payment_method: string;
   notes: string | null; created_at: string;
+}
+
+interface PurchaseItem {
+  id: string; product_id: string | null; quantity: number; unit_price: number; subtotal: number;
 }
 
 interface Supplier { id: string; name: string; }
@@ -31,6 +39,7 @@ export default function PurchasesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // New purchase form
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [refNo, setRefNo] = useState("");
@@ -40,6 +49,20 @@ export default function PurchasesPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [qty, setQty] = useState(1);
+
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [editForm, setEditForm] = useState({ supplier_id: "", date: "", reference_no: "", payment_status: "", payment_method: "", discount: 0 });
+
+  // View state
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewPurchase, setViewPurchase] = useState<Purchase | null>(null);
+  const [viewItems, setViewItems] = useState<(PurchaseItem & { product_name?: string })[]>([]);
+
+  // Delete state
+  const [deletePurchase, setDeletePurchase] = useState<Purchase | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -132,6 +155,84 @@ export default function PurchasesPage() {
 
   const getSupplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "Walk-in";
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
+
+  // View purchase details
+  const handleView = async (p: Purchase) => {
+    setViewPurchase(p);
+    const { data } = await supabase.from("purchase_items").select("*").eq("purchase_id", p.id);
+    const itemsWithNames = (data || []).map((item: any) => ({
+      ...item,
+      product_name: products.find((pr) => pr.id === item.product_id)?.name || "Unknown Product",
+    }));
+    setViewItems(itemsWithNames);
+    setViewDialogOpen(true);
+  };
+
+  // Edit purchase
+  const startEdit = (p: Purchase) => {
+    setEditingPurchase(p);
+    setEditForm({
+      supplier_id: p.supplier_id || "",
+      date: p.date,
+      reference_no: p.reference_no || "",
+      payment_status: p.payment_status,
+      payment_method: p.payment_method,
+      discount: Number(p.discount) || 0,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingPurchase) return;
+    const { error } = await supabase.from("purchases").update({
+      supplier_id: editForm.supplier_id || null,
+      date: editForm.date,
+      reference_no: editForm.reference_no || null,
+      payment_status: editForm.payment_status,
+      payment_method: editForm.payment_method,
+      discount: editForm.discount,
+    }).eq("id", editingPurchase.id);
+
+    if (error) { toast.error("Failed to update purchase"); return; }
+    toast.success("Purchase updated");
+    logAction("update", "purchase", editingPurchase.id, `Updated purchase Rs ${Number(editingPurchase.total).toLocaleString()}`);
+    setEditDialogOpen(false);
+    setEditingPurchase(null);
+    fetchData();
+  };
+
+  // Delete purchase
+  const handleDelete = async () => {
+    if (!deletePurchase) return;
+    setDeleting(true);
+    try {
+      // Reverse stock for purchase items
+      const { data: items } = await supabase.from("purchase_items").select("*").eq("purchase_id", deletePurchase.id);
+      if (items) {
+        for (const item of items) {
+          const prod = products.find((p) => p.id === item.product_id);
+          if (prod) {
+            const newQty = Math.max(0, prod.quantity - Number(item.quantity));
+            await supabase.from("products").update({ quantity: newQty }).eq("id", item.product_id);
+          }
+        }
+      }
+
+      await supabase.from("purchase_items").delete().eq("purchase_id", deletePurchase.id);
+      const { error } = await supabase.from("purchases").delete().eq("id", deletePurchase.id);
+      if (error) throw error;
+
+      logAction("delete", "purchase", deletePurchase.id, `Deleted purchase Rs ${Number(deletePurchase.total).toLocaleString()} from ${getSupplierName(deletePurchase.supplier_id)}`);
+      toast.success("Purchase deleted & stock reversed");
+      setDeletePurchase(null);
+      fetchData();
+    } catch (e) {
+      console.error("Delete purchase error:", e);
+      toast.error("Failed to delete purchase");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -242,6 +343,7 @@ export default function PurchasesPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ref No</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
+                <th className="px-4 py-3 w-28 text-center font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -252,12 +354,134 @@ export default function PurchasesPage() {
                   <td className="px-4 py-3 text-muted-foreground">{p.reference_no || "—"}</td>
                   <td className="px-4 py-3"><Badge variant={statusColor(p.payment_status)}>{p.payment_status}</Badge></td>
                   <td className="px-4 py-3 text-right font-medium">Rs {Number(p.total).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleView(p)} title="View Details">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(p)} title="Edit Purchase">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeletePurchase(p)} title="Delete Purchase">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* View Purchase Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Purchase Details</DialogTitle></DialogHeader>
+          {viewPurchase && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">Date:</span> <span className="font-medium">{viewPurchase.date}</span></div>
+                <div><span className="text-muted-foreground">Supplier:</span> <span className="font-medium">{getSupplierName(viewPurchase.supplier_id)}</span></div>
+                <div><span className="text-muted-foreground">Ref No:</span> <span className="font-medium">{viewPurchase.reference_no || "—"}</span></div>
+                <div><span className="text-muted-foreground">Method:</span> <span className="font-medium capitalize">{viewPurchase.payment_method}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColor(viewPurchase.payment_status)} className="ml-1 capitalize text-xs">{viewPurchase.payment_status}</Badge></div>
+                <div><span className="text-muted-foreground">Discount:</span> <span className="font-medium">Rs {Number(viewPurchase.discount).toLocaleString()}</span></div>
+              </div>
+              {viewItems.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50"><th className="px-3 py-2 text-left">Product</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Subtotal</th></tr></thead>
+                    <tbody>
+                      {viewItems.map((item) => (
+                        <tr key={item.id} className="border-b last:border-0">
+                          <td className="px-3 py-2">{item.product_name}</td>
+                          <td className="px-3 py-2 text-right">{Number(item.quantity)}</td>
+                          <td className="px-3 py-2 text-right">Rs {Number(item.unit_price).toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-medium">Rs {Number(item.subtotal).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="text-right text-lg font-bold">Total: Rs {Number(viewPurchase.total).toLocaleString()}</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Purchase Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit Purchase</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="space-y-1">
+              <Label>Supplier</Label>
+              <Select value={editForm.supplier_id} onValueChange={(v) => setEditForm({ ...editForm, supplier_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Date</Label>
+              <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Reference No</Label>
+              <Input value={editForm.reference_no} onChange={(e) => setEditForm({ ...editForm, reference_no: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Payment Status</Label>
+                <Select value={editForm.payment_status} onValueChange={(v) => setEditForm({ ...editForm, payment_status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="due">Due</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Payment Method</Label>
+                <Select value={editForm.payment_method} onValueChange={(v) => setEditForm({ ...editForm, payment_method: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank">Bank Transfer</SelectItem>
+                    <SelectItem value="jazzcash">JazzCash</SelectItem>
+                    <SelectItem value="easypaisa">EasyPaisa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Discount</Label>
+              <NumberInput value={editForm.discount} onValueChange={(v) => setEditForm({ ...editForm, discount: v })} />
+            </div>
+            <Button onClick={handleEditSave} className="gap-2"><Save className="h-4 w-4" /> Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletePurchase} onOpenChange={(open) => !open && setDeletePurchase(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Purchase?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this purchase (Rs {Number(deletePurchase?.total || 0).toLocaleString()}) from {getSupplierName(deletePurchase?.supplier_id || null)} and reverse the stock quantities. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
