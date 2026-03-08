@@ -107,7 +107,7 @@ function AppRoutes() {
     );
   }
 
-  if (!user) return <Routes><Route path="/login" element={<LoginPage />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
+  if (!user) return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
 
   return (
     <AppLayout>
