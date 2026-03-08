@@ -107,7 +107,13 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
+            {lockoutEnd && Date.now() < lockoutEnd && (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <span>Account locked. Try again in {remainingSeconds}s.</span>
+              </div>
+            )}
+            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading || (!!lockoutEnd && Date.now() < lockoutEnd)}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
