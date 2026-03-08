@@ -202,9 +202,14 @@ export default function POSPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold tracking-tight">Point of Sale</h1>
-            <Button variant="outline" className="lg:hidden gap-2" onClick={() => setShowCart(!showCart)}>
-              <ShoppingBag className="h-4 w-4" /> Cart ({cart.length})
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" size="sm" onClick={() => setScannerOpen(true)}>
+                <ScanLine className="h-4 w-4" /> Scan
+              </Button>
+              <Button variant="outline" className="lg:hidden gap-2" size="sm" onClick={() => setShowCart(!showCart)}>
+                <ShoppingBag className="h-4 w-4" /> Cart ({cart.length})
+              </Button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
