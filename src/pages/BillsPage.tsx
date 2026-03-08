@@ -264,6 +264,17 @@ export default function BillsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Bill Dialog */}
+      {editSale && (
+        <EditBillDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          sale={editSale}
+          customers={customers}
+          onSaved={refreshSales}
+        />
+      )}
     </div>
   );
 }
