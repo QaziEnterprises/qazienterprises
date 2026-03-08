@@ -123,85 +123,7 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Overview of your shop operations</p>
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/products-db")}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-primary/10 p-2"><Boxes className="h-5 w-5 text-primary" /></div>
-            <div>
-              <p className="text-2xl font-bold">{totalProducts}</p>
-              <p className="text-xs text-muted-foreground">Total Products</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/contacts")}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-blue-500/10 p-2"><Users className="h-5 w-5 text-blue-600" /></div>
-            <div>
-              <p className="text-2xl font-bold">{totalContacts}</p>
-              <p className="text-xs text-muted-foreground">Contacts</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/bills")}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-amber-500/10 p-2"><CreditCard className="h-5 w-5 text-amber-600" /></div>
-            <div>
-              <p className="text-2xl font-bold text-amber-600">Rs {pendingPayments.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Pending Payments</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-destructive/10 p-2"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-            <div>
-              <p className="text-2xl font-bold text-destructive">{lowStockProducts.length}</p>
-              <p className="text-xs text-muted-foreground">Low Stock Items</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Low Stock Alerts - Always visible */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className={`mb-6 rounded-lg border p-4 ${lowStockProducts.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/30"}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className={`h-5 w-5 ${lowStockProducts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-            <h3 className={`font-semibold ${lowStockProducts.length > 0 ? "text-destructive" : "text-foreground"}`}>
-              {lowStockProducts.length > 0 ? `Low Stock Alert — ${lowStockProducts.length} product(s)` : "Stock Levels Healthy"}
-            </h3>
-          </div>
-          <Link to="/products-db"><Button variant="outline" size="sm" className="text-xs">View Products</Button></Link>
-        </div>
-        {lowStockProducts.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {lowStockProducts.map((p) => {
-              const reorderQty = Math.max(p.alert_threshold * 2 - p.quantity, p.alert_threshold);
-              return (
-                <div key={p.id} className="flex items-center justify-between rounded border bg-background p-2 text-sm gap-2">
-                  <div className="min-w-0">
-                    <span className="font-medium block truncate">{p.name}</span>
-                    <span className="text-xs text-muted-foreground">Stock: <span className="text-destructive font-medium">{p.quantity}</span> / Min: {p.alert_threshold}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs flex-shrink-0 h-7 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => navigate(`/purchases?reorder=${p.id}&product=${encodeURIComponent(p.name)}&qty=${reorderQty}&price=${p.purchase_price}`)}
-                  >
-                    <ShoppingCart className="h-3 w-3 mr-1" /> Reorder
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">All products are above their minimum stock levels.</p>
-        )}
-      </motion.div>
-
-      {/* Today's Summary */}
+      {/* Today's Summary - TOP */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-3">Today's Summary</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -255,7 +177,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Charts + Quick Summary */}
+      {/* Charts + Payment Breakdown */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         {(() => {
           const data = [
@@ -314,6 +236,84 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/products-db")}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="rounded-lg bg-primary/10 p-2"><Boxes className="h-5 w-5 text-primary" /></div>
+            <div>
+              <p className="text-2xl font-bold">{totalProducts}</p>
+              <p className="text-xs text-muted-foreground">Total Products</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/contacts")}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="rounded-lg bg-blue-500/10 p-2"><Users className="h-5 w-5 text-blue-600" /></div>
+            <div>
+              <p className="text-2xl font-bold">{totalContacts}</p>
+              <p className="text-xs text-muted-foreground">Contacts</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/bills")}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="rounded-lg bg-amber-500/10 p-2"><CreditCard className="h-5 w-5 text-amber-600" /></div>
+            <div>
+              <p className="text-2xl font-bold text-amber-600">Rs {pendingPayments.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Pending Payments</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="rounded-lg bg-destructive/10 p-2"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
+            <div>
+              <p className="text-2xl font-bold text-destructive">{lowStockProducts.length}</p>
+              <p className="text-xs text-muted-foreground">Low Stock Items</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Low Stock Alerts */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className={`mb-6 rounded-lg border p-4 ${lowStockProducts.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/30"}`}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className={`h-5 w-5 ${lowStockProducts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            <h3 className={`font-semibold ${lowStockProducts.length > 0 ? "text-destructive" : "text-foreground"}`}>
+              {lowStockProducts.length > 0 ? `Low Stock Alert — ${lowStockProducts.length} product(s)` : "Stock Levels Healthy"}
+            </h3>
+          </div>
+          <Link to="/products-db"><Button variant="outline" size="sm" className="text-xs">View Products</Button></Link>
+        </div>
+        {lowStockProducts.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {lowStockProducts.map((p) => {
+              const reorderQty = Math.max(p.alert_threshold * 2 - p.quantity, p.alert_threshold);
+              return (
+                <div key={p.id} className="flex items-center justify-between rounded border bg-background p-2 text-sm gap-2">
+                  <div className="min-w-0">
+                    <span className="font-medium block truncate">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">Stock: <span className="text-destructive font-medium">{p.quantity}</span> / Min: {p.alert_threshold}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs flex-shrink-0 h-7 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => navigate(`/purchases?reorder=${p.id}&product=${encodeURIComponent(p.name)}&qty=${reorderQty}&price=${p.purchase_price}`)}
+                  >
+                    <ShoppingCart className="h-3 w-3 mr-1" /> Reorder
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">All products are above their minimum stock levels.</p>
+        )}
+      </motion.div>
 
       {/* Recent Sales + Top Debtors */}
       <div className="grid gap-4 lg:grid-cols-2">
