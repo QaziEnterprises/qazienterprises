@@ -44,7 +44,7 @@ export default function TodosPage() {
   const addTodo = async () => {
     if (!newTitle.trim()) return;
     try {
-      const { error } = await supabase.from("todos" as any).insert({
+      const { error } = await supabase.from("todos").insert({
         title: newTitle.trim(),
         priority: newPriority,
         created_by: user?.id,
