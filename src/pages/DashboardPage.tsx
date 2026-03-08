@@ -67,7 +67,7 @@ export default function DashboardPage() {
           { data: todayPurchases },
           { data: todayExpenses },
           { data: products },
-          { count: contactsCount },
+          contactsResult,
           { data: pendingSales },
           { data: recent },
           { data: debtors },
