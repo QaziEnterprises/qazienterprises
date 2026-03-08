@@ -115,7 +115,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <DayTransactionsDialog open={!!selectedDate} onOpenChange={(o) => !o && setSelectedDate(null)} date={selectedDate || ""} onDataChanged={fetchData} />
+      <DayTransactionsDialog open={!!selectedDate} onOpenChange={(o) => !o && setSelectedDate(null)} date={selectedDate || ""} onDataChanged={handleDataChanged} />
 
       {/* Low Stock Alert */}
       {lowStockProducts.length > 0 && (
