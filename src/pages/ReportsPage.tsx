@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
-import { CalendarDays, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CalendarDays, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, AlertTriangle, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
+import { toast } from "sonner";
+import DayTransactionsDialog from "@/components/reports/DayTransactionsDialog";
 
 interface DailySummary {
   date: string;
@@ -28,6 +32,8 @@ export default function ReportsPage() {
   const [summaries, setSummaries] = useState<DailySummary[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<{ name: string; quantity: number; alert_threshold: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,7 +73,7 @@ export default function ReportsPage() {
       }
     };
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, refreshKey]);
 
   const totals = summaries.reduce(
     (acc, d) => ({
@@ -79,12 +85,36 @@ export default function ReportsPage() {
     { sales: 0, purchases: 0, expenses: 0, profit: 0 }
   );
 
+  const handleDataChanged = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Daily Reports</h1>
-        <p className="text-sm text-muted-foreground">Sales, purchases & expenses summary</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Daily Reports</h1>
+          <p className="text-sm text-muted-foreground">Sales, purchases & expenses summary</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" disabled={summaries.length === 0} onClick={() => {
+            exportToExcel(summaries.map(d => ({
+              Date: d.date, Sales: d.totalSales, Purchases: d.totalPurchases,
+              Expenses: d.totalExpenses, "Net Profit": d.profit,
+              "Sales Count": d.salesCount, "Purchases Count": d.purchasesCount, "Expenses Count": d.expensesCount,
+            })), "Daily_Reports");
+            toast.success("Exported to Excel");
+          }}><Download className="h-4 w-4" /> Excel</Button>
+          <Button size="sm" variant="outline" className="gap-2" disabled={summaries.length === 0} onClick={() => {
+            printAsPDF("Daily Reports", ["Date", "Sales", "Purchases", "Expenses", "Net Profit"],
+              summaries.map(d => [d.date, `Rs ${d.totalSales.toLocaleString()}`, `Rs ${d.totalPurchases.toLocaleString()}`,
+                `Rs ${d.totalExpenses.toLocaleString()}`, `Rs ${d.profit.toLocaleString()}`])
+            );
+          }}><Download className="h-4 w-4" /> PDF</Button>
+        </div>
       </div>
+
+      <DayTransactionsDialog open={!!selectedDate} onOpenChange={(o) => !o && setSelectedDate(null)} date={selectedDate || ""} onDataChanged={handleDataChanged} />
 
       {/* Low Stock Alert */}
       {lowStockProducts.length > 0 && (
@@ -171,7 +201,7 @@ export default function ReportsPage() {
             </thead>
             <tbody>
               {summaries.map((d, i) => (
-                <motion.tr key={d.date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b last:border-0 hover:bg-muted/30">
+                <motion.tr key={d.date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="border-b last:border-0 hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedDate(d.date)}>
                   <td className="px-4 py-3 font-medium">{d.date}</td>
                   <td className="px-4 py-3 text-right text-green-600">Rs {d.totalSales.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-blue-600">Rs {d.totalPurchases.toLocaleString()}</td>
