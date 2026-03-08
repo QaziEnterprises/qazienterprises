@@ -22,9 +22,6 @@ import BillsPage from "@/pages/BillsPage";
 import SummaryPage from "@/pages/SummaryPage";
 import LedgerPage from "@/pages/LedgerPage";
 import AuditPage from "@/pages/AuditPage";
-import CashRegisterPage from "@/pages/CashRegisterPage";
-import TodosPage from "@/pages/TodosPage";
-import KhataPage from "@/pages/KhataPage";
 import ProfitCalculatorPage from "@/pages/ProfitCalculatorPage";
 import BackupPage from "@/pages/BackupPage";
 import PriceListPage from "@/pages/PriceListPage";
@@ -127,7 +124,6 @@ function AppRoutes() {
         <Route path="/bills" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
         <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
         <Route path="/ledger" element={<ProtectedRoute adminOnly><LedgerPage /></ProtectedRoute>} />
-        <Route path="/profit" element={<ProtectedRoute><ProfitCalculatorPage /></ProtectedRoute>} />
         <Route path="/profit" element={<ProtectedRoute><ProfitCalculatorPage /></ProtectedRoute>} />
         <Route path="/backup" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
         <Route path="/price-list" element={<ProtectedRoute><PriceListPage /></ProtectedRoute>} />

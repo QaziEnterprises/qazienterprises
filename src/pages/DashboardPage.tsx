@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle, ShoppingCart, Receipt, DollarSign, Wallet, Unlock, Lock, CheckCircle2 } from "lucide-react";
+import { Package, Users, FileSpreadsheet, TrendingUp, ArrowDownRight, Banknote, Smartphone, CreditCard, Building2, AlertTriangle, ShoppingCart, Receipt, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getInventory, getReceivables, getSales } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { InventoryItem } from "@/types";
+
 import { motion } from "framer-motion";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 const CHART_COLORS = [
@@ -42,10 +42,10 @@ export default function DashboardPage() {
   const [topDebtors, setTopDebtors] = useState<{ name: string; balance: number }[]>([]);
   const [breakdownData, setBreakdownData] = useState<{ name: string; value: number }[]>([]);
   const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
-  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  
   const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; quantity: number; alert_threshold: number; purchase_price: number }[]>([]);
   const [today, setToday] = useState<TodaySummary>({ todaySales: 0, todayPurchases: 0, todayExpenses: 0, todayProfit: 0, todaySalesCount: 0, todayPurchasesCount: 0, todayExpensesCount: 0, todayJC: 0, todayEP: 0, todayBT: 0, todayCash: 0 });
-  const [cashRegister, setCashRegister] = useState<{ status: string; opening_balance: number; cash_in: number; cash_out: number; expected_balance: number } | null>(null);
+  
 
   useEffect(() => {
     // Legacy localStorage data
@@ -91,22 +91,16 @@ export default function DashboardPage() {
       { name: "Settled", value: zero.length },
     ].filter((d) => d.value > 0));
 
-    const lowStock = inv.filter((item) => {
-      const threshold = (item as any).alertThreshold;
-      return threshold && threshold > 0 && item.quantity <= threshold;
-    });
-    setLowStockItems(lowStock);
 
     // Fetch today's data from Supabase
     const todayStr = new Date().toISOString().split("T")[0];
     const fetchToday = async () => {
       try {
-        const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }, { data: cashReg }] = await Promise.all([
+        const [{ data: todaySales }, { data: todayPurchases }, { data: todayExpenses }, { data: products }] = await Promise.all([
           supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
           supabase.from("purchases").select("total").eq("date", todayStr),
           supabase.from("expenses").select("amount").eq("date", todayStr),
           supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price"),
-          supabase.from("cash_register").select("*").eq("date", todayStr).maybeSingle(),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
@@ -135,19 +129,6 @@ export default function DashboardPage() {
             .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
 
-        // Cash register status
-        if (cashReg) {
-          const cr = cashReg as any;
-          const cashIn = (todaySales || []).filter((s: any) => s.payment_method === "cash").reduce((sum: number, s: any) => sum + Number(s.total || 0), 0);
-          const cashOut = (todayExpenses || []).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
-          setCashRegister({
-            status: cr.status,
-            opening_balance: Number(cr.opening_balance || 0),
-            cash_in: cashIn,
-            cash_out: cashOut,
-            expected_balance: Number(cr.opening_balance || 0) + cashIn - cashOut,
-          });
-        }
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       }
@@ -214,23 +195,6 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Low Stock Alerts — Legacy Inventory */}
-      {lowStockItems.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950/20 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
-            <h3 className="font-semibold text-orange-600">Inventory Low Stock — {lowStockItems.length} item(s)</h3>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {lowStockItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded border bg-background p-2 text-sm">
-                <span className="font-medium">{item.name}</span>
-                <span className="text-destructive font-bold">{item.quantity} left</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
 
       {/* Today's Summary */}
       <div className="mb-8">
