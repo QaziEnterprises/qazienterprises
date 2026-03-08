@@ -66,7 +66,7 @@ export default function CashRegisterPage() {
         setTodayEntry(null);
       }
 
-      setHistory((historyData as any as CashRegisterEntry[]) || []);
+      setHistory((historyData as unknown as CashRegisterEntry[]) || []);
     } catch (e) {
       console.error("Cash register fetch error:", e);
     } finally {
