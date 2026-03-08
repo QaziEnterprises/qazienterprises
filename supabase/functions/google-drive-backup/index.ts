@@ -314,9 +314,7 @@ async function performBackup(supabase: any, userId: string) {
       .single();
 
     if (tokenErr || !tokenRow) {
-      return new Response(JSON.stringify({ error: "Google Drive not connected. Please connect first." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("Google Drive not connected for user " + userId);
     }
 
     // Refresh token if expired
