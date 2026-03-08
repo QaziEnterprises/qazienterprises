@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText, Download, MessageCircle } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import EditBillDialog from "@/components/EditBillDialog";
 
 interface SaleTransaction {
   id: string; invoice_no: string | null; date: string; customer_id: string | null;
@@ -31,6 +32,8 @@ export default function BillsPage() {
   const [selectedSale, setSelectedSale] = useState<SaleTransaction | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editSale, setEditSale] = useState<SaleTransaction | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +56,11 @@ export default function BillsPage() {
   }, []);
 
   const getCustomerName = (id: string | null) => customers.find((c) => c.id === id)?.name || "Walk-in Customer";
+
+  const refreshSales = async () => {
+    const { data } = await supabase.from("sale_transactions").select("*").order("created_at", { ascending: false });
+    setSales(data || []);
+  };
 
   const filtered = sales.filter((s) =>
     s.invoice_no?.toLowerCase().includes(search.toLowerCase()) ||
@@ -162,10 +170,15 @@ export default function BillsPage() {
                   <td className="px-4 py-3 capitalize text-muted-foreground">{s.payment_method}</td>
                   <td className="px-4 py-3"><Badge variant={statusColor(s.payment_status)}>{s.payment_status}</Badge></td>
                   <td className="px-4 py-3 text-right font-bold">Rs {Number(s.total).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center flex items-center justify-center gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => viewBill(s)}>
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
+                    {role === "admin" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </td>
                 </motion.tr>
               ))}
@@ -251,6 +264,17 @@ export default function BillsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Bill Dialog */}
+      {editSale && (
+        <EditBillDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          sale={editSale}
+          customers={customers}
+          onSaved={refreshSales}
+        />
+      )}
     </div>
   );
 }
