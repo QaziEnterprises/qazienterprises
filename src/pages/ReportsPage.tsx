@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
 import DayTransactionsDialog from "@/components/reports/DayTransactionsDialog";
+import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 interface DailySummary {
   date: string;
