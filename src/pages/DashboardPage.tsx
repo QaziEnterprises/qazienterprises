@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getInventory, getReceivables, getSales } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { InventoryItem } from "@/types";
+
 import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line,
