@@ -87,9 +87,12 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const exp = expenses.find(e => e.id === id);
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
-    toast.success("Expense deleted"); fetchData();
+    toast.success("Expense deleted");
+    logAction("delete", "expense", id, `Deleted expense Rs ${exp?.amount || 0}`);
+    fetchData();
   };
 
   const addCategory = async () => {

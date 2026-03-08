@@ -103,6 +103,7 @@ export default function PurchasesPage() {
     }
 
     toast.success("Purchase recorded");
+    logAction("create", "purchase", purchase.id, `Purchase Rs ${cartTotal} from ${getSupplierName(supplierId || null)}`);
     setDialogOpen(false); setCart([]); setSupplierId(""); setRefNo(""); setDiscount(0);
     fetchData();
   };
