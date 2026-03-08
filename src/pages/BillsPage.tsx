@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText, Download, MessageCircle } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import EditBillDialog from "@/components/EditBillDialog";
 
 interface SaleTransaction {
   id: string; invoice_no: string | null; date: string; customer_id: string | null;
