@@ -416,9 +416,7 @@ async function performBackup(supabase: any, userId: string) {
         error_message: JSON.stringify(uploadData),
         tables_backed_up: backedUpTables,
       });
-      return new Response(JSON.stringify({ error: "Upload failed", details: uploadData }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("Upload failed: " + JSON.stringify(uploadData));
     }
 
     await supabase.from("backup_history").insert({
@@ -430,19 +428,12 @@ async function performBackup(supabase: any, userId: string) {
       size_bytes: parseInt(uploadData.size || "0"),
     });
 
-    return new Response(JSON.stringify({
+    return {
       success: true,
       file_name: fileName,
       drive_file_id: uploadData.id,
       tables_count: backedUpTables.length,
       total_records: Object.values(tableCounts).reduce((a, b) => a + b, 0),
       size_bytes: uploadData.size,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-});
+    };
+}
