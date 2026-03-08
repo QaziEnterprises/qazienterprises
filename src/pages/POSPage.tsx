@@ -55,8 +55,8 @@ export default function POSPage() {
     const fetchData = async () => {
       try {
         const [{ data: prods }, { data: custs }] = await Promise.all([
-          supabase.from("products").select("id, name, selling_price, quantity, sku").order("name"),
-          supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
+          retryQuery(() => supabase.from("products").select("id, name, selling_price, quantity, sku").order("name")),
+          retryQuery(() => supabase.from("contacts").select("id, name").eq("type", "customer").order("name")),
         ]);
         setProducts(prods || []);
         setCustomers(custs || []);

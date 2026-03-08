@@ -39,8 +39,8 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const [{ data: prods }, { data: cats }] = await Promise.all([
-        supabase.from("products").select("*").order("name"),
-        supabase.from("product_categories").select("*").order("name"),
+        retryQuery(() => supabase.from("products").select("*").order("name")),
+        retryQuery(() => supabase.from("product_categories").select("*").order("name")),
       ]);
       setProducts(prods || []);
       setCategories(cats || []);

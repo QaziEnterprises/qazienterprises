@@ -36,8 +36,8 @@ export default function ExpensesPage() {
     setLoading(true);
     try {
       const [{ data: exps }, { data: cats }] = await Promise.all([
-        supabase.from("expenses").select("*").order("date", { ascending: false }),
-        supabase.from("expense_categories").select("*").order("name"),
+        retryQuery(() => supabase.from("expenses").select("*").order("date", { ascending: false })),
+        retryQuery(() => supabase.from("expense_categories").select("*").order("name")),
       ]);
       setExpenses(exps || []);
       setCategories(cats || []);
