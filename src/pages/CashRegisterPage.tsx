@@ -57,7 +57,7 @@ export default function CashRegisterPage() {
         setTodayEntry(entry);
 
         // Auto-update cash_in/cash_out
-        await supabase.from("cash_register" as any).update({
+        await supabase.from("cash_register").update({
           cash_in: cashIn,
           cash_out: cashOut,
           expected_balance: entry.opening_balance + cashIn - cashOut,
