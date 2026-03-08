@@ -25,6 +25,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/inventory", icon: Package, label: "Inventory", adminOnly: false },
     { to: "/receivables", icon: Users, label: "Receivables", adminOnly: false },
     { to: "/sales", icon: FileSpreadsheet, label: "Sales Summary", adminOnly: false },
+    { to: "/ledger", icon: BookOpen, label: "Customer Ledger", adminOnly: true },
+    { to: "/audit", icon: ClipboardList, label: "Audit Trail", adminOnly: true },
     { to: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
   ];
 
