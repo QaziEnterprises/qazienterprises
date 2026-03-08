@@ -23,6 +23,7 @@ interface SaleItem {
 interface Customer { id: string; name: string; }
 
 export default function BillsPage() {
+  const { role } = useAuth();
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
