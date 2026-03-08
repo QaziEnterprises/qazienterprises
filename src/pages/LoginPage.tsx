@@ -22,7 +22,7 @@ async function checkServerRateLimit(email: string): Promise<{ allowed: boolean; 
     if (error) throw error;
     return { allowed: data?.allowed ?? true, remaining: data?.remaining ?? MAX_ATTEMPTS };
   } catch {
-    return { allowed: true, remaining: MAX_ATTEMPTS }; // fail open
+    return { allowed: true, remaining: MAX_ATTEMPTS };
   }
 }
 
@@ -49,6 +49,11 @@ export default function LoginPage() {
   const attemptsRef = useRef<number[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Forgot password state
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   const startLockoutTimer = useCallback((endTime: number) => {
     setLockoutEnd(endTime);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -66,14 +71,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Client-side lockout check
     if (lockoutEnd && Date.now() < lockoutEnd) {
       toast.error(`Too many attempts. Try again in ${remainingSeconds}s.`);
       return;
     }
-
-    // Client-side rate limit
     const now = Date.now();
     attemptsRef.current = attemptsRef.current.filter(t => now - t < ATTEMPT_WINDOW_MS);
     if (attemptsRef.current.length >= MAX_ATTEMPTS) {
@@ -84,8 +85,6 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-
-    // Server-side rate limit check
     const serverCheck = await checkServerRateLimit(email);
     if (!serverCheck.allowed) {
       const lockEnd = Date.now() + LOCKOUT_DURATION_MS;
@@ -114,6 +113,63 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password reset link sent! Check your email.");
+      setShowForgot(false);
+      setForgotEmail("");
+    }
+    setForgotLoading(false);
+  };
+
+  if (showForgot) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-accent">
+              <Package className="h-6 w-6 text-accent-foreground" />
+            </div>
+            <CardTitle className="text-2xl">Reset Password</CardTitle>
+            <p className="text-sm text-muted-foreground">Enter your email to receive a reset link</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  autoFocus
+                />
+              </div>
+              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={forgotLoading}>
+                {forgotLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setShowForgot(false)}>
+                Back to Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -137,7 +193,19 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Password</Label>
+              <div className="flex items-center justify-between">
+                <Label>Password</Label>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-accent-foreground transition-colors"
+                  onClick={() => {
+                    setShowForgot(true);
+                    setForgotEmail(email);
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 type="password"
                 value={password}
