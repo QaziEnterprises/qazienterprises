@@ -32,6 +32,8 @@ export default function BillsPage() {
   const [selectedSale, setSelectedSale] = useState<SaleTransaction | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editSale, setEditSale] = useState<SaleTransaction | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
