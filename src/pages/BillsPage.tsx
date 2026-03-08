@@ -114,6 +114,25 @@ export default function BillsPage() {
 
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
 
+  const handleDelete = async () => {
+    if (!deleteSale) return;
+    setDeleting(true);
+    try {
+      await supabase.from("sale_items").delete().eq("sale_id", deleteSale.id);
+      const { error } = await supabase.from("sale_transactions").delete().eq("id", deleteSale.id);
+      if (error) throw error;
+      logAction("delete", "sale", deleteSale.id, `Deleted invoice ${deleteSale.invoice_no} - Rs ${Number(deleteSale.total).toLocaleString()}`);
+      toast.success(`Invoice ${deleteSale.invoice_no} deleted`);
+      setDeleteSale(null);
+      refreshSales();
+    } catch (e) {
+      console.error("Delete bill error:", e);
+      toast.error("Failed to delete invoice");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
