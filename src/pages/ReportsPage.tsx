@@ -32,6 +32,7 @@ export default function ReportsPage() {
   const [summaries, setSummaries] = useState<DailySummary[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<{ name: string; quantity: number; alert_threshold: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
