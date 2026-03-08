@@ -64,7 +64,7 @@ export default function TodosPage() {
   };
 
   const deleteTodo = async (id: string) => {
-    await supabase.from("todos" as any).delete().eq("id", id);
+    await supabase.from("todos").delete().eq("id", id);
     setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 

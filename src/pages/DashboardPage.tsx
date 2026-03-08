@@ -106,7 +106,7 @@ export default function DashboardPage() {
           supabase.from("purchases").select("total").eq("date", todayStr),
           supabase.from("expenses").select("amount").eq("date", todayStr),
           supabase.from("products").select("id, name, quantity, alert_threshold, purchase_price"),
-          supabase.from("cash_register" as any).select("*").eq("date", todayStr).maybeSingle(),
+          supabase.from("cash_register").select("*").eq("date", todayStr).maybeSingle(),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);

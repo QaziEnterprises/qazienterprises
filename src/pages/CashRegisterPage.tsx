@@ -107,7 +107,7 @@ export default function CashRegisterPage() {
     }
     const discrepancy = actual - todayEntry.expected_balance;
     try {
-      const { error } = await supabase.from("cash_register" as any).update({
+      const { error } = await supabase.from("cash_register").update({
         actual_balance: actual,
         discrepancy,
         notes: closingNotes || null,
