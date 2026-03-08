@@ -30,8 +30,8 @@ export default function TodosPage() {
 
   const fetchTodos = async () => {
     try {
-      const { data } = await supabase.from("todos" as any).select("*").order("created_at", { ascending: false });
-      setTodos((data as any as Todo[]) || []);
+      const { data } = await supabase.from("todos").select("*").order("created_at", { ascending: false });
+      setTodos((data as unknown as Todo[]) || []);
     } catch (e) {
       console.error("Todos fetch error:", e);
     } finally {
@@ -44,7 +44,7 @@ export default function TodosPage() {
   const addTodo = async () => {
     if (!newTitle.trim()) return;
     try {
-      const { error } = await supabase.from("todos" as any).insert({
+      const { error } = await supabase.from("todos").insert({
         title: newTitle.trim(),
         priority: newPriority,
         created_by: user?.id,
@@ -59,12 +59,12 @@ export default function TodosPage() {
   };
 
   const toggleTodo = async (id: string, completed: boolean) => {
-    await supabase.from("todos" as any).update({ completed: !completed }).eq("id", id);
+    await supabase.from("todos").update({ completed: !completed }).eq("id", id);
     setTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !completed } : t));
   };
 
   const deleteTodo = async (id: string) => {
-    await supabase.from("todos" as any).delete().eq("id", id);
+    await supabase.from("todos").delete().eq("id", id);
     setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 

@@ -38,8 +38,8 @@ export default function CashRegisterPage() {
   const fetchData = async () => {
     try {
       const [{ data: todayData }, { data: historyData }, { data: todaySales }, { data: todayExpenses }, { data: todayPurchases }] = await Promise.all([
-        supabase.from("cash_register" as any).select("*").eq("date", todayStr).maybeSingle(),
-        supabase.from("cash_register" as any).select("*").order("date", { ascending: false }).limit(30),
+        supabase.from("cash_register").select("*").eq("date", todayStr).maybeSingle(),
+        supabase.from("cash_register").select("*").order("date", { ascending: false }).limit(30),
         supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr),
         supabase.from("expenses").select("amount").eq("date", todayStr),
         supabase.from("purchases").select("total, payment_method").eq("date", todayStr),
@@ -50,14 +50,14 @@ export default function CashRegisterPage() {
         (todayPurchases || []).filter((p: any) => p.payment_method === "cash").reduce((sum: number, p: any) => sum + Number(p.total || 0), 0);
 
       if (todayData) {
-        const entry = todayData as any as CashRegisterEntry;
+        const entry = todayData as unknown as CashRegisterEntry;
         entry.cash_in = cashIn;
         entry.cash_out = cashOut;
         entry.expected_balance = entry.opening_balance + cashIn - cashOut;
         setTodayEntry(entry);
 
         // Auto-update cash_in/cash_out
-        await supabase.from("cash_register" as any).update({
+        await supabase.from("cash_register").update({
           cash_in: cashIn,
           cash_out: cashOut,
           expected_balance: entry.opening_balance + cashIn - cashOut,
@@ -66,7 +66,7 @@ export default function CashRegisterPage() {
         setTodayEntry(null);
       }
 
-      setHistory((historyData as any as CashRegisterEntry[]) || []);
+      setHistory((historyData as unknown as CashRegisterEntry[]) || []);
     } catch (e) {
       console.error("Cash register fetch error:", e);
     } finally {
@@ -83,7 +83,7 @@ export default function CashRegisterPage() {
       return;
     }
     try {
-      const { error } = await supabase.from("cash_register" as any).insert({
+      const { error } = await supabase.from("cash_register").insert({
         date: todayStr,
         opening_balance: balance,
         status: "open",
@@ -107,7 +107,7 @@ export default function CashRegisterPage() {
     }
     const discrepancy = actual - todayEntry.expected_balance;
     try {
-      const { error } = await supabase.from("cash_register" as any).update({
+      const { error } = await supabase.from("cash_register").update({
         actual_balance: actual,
         discrepancy,
         notes: closingNotes || null,

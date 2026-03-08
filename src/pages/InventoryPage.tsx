@@ -66,6 +66,7 @@ export default function InventoryPage() {
   };
 
   const handleDelete = (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
     deleteInventoryItem(id);
     toast.success("Item removed");
     reload();

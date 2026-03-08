@@ -87,6 +87,7 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this expense?")) return;
     const exp = expenses.find(e => e.id === id);
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }

@@ -99,6 +99,7 @@ export default function ContactsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this contact?")) return;
     const contact = contacts.find(c => c.id === id);
     const { error } = await supabase.from("contacts").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }

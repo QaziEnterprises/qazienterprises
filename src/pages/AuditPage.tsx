@@ -27,7 +27,7 @@ export default function AuditPage() {
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      let query = supabase.from("audit_logs" as any).select("*").order("created_at", { ascending: false }).limit(500);
+      let query = supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500);
       if (dateFrom) query = query.gte("created_at", dateFrom);
       if (dateTo) query = query.lte("created_at", dateTo + "T23:59:59");
       const { data, error } = await query;

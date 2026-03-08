@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Calendar, Download, FileSpreadsheet, TrendingUp, TrendingDown, DollarSign, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,9 +102,11 @@ export default function SummaryPage() {
     fetchSummaries();
   }, []);
 
-  // Auto-sync today on load
+  // Auto-sync today on first load only
+  const syncedRef = useRef(false);
   useEffect(() => {
-    if (!loading && summaries.length >= 0) {
+    if (!loading && !syncedRef.current) {
+      syncedRef.current = true;
       const todayStr = new Date().toISOString().split("T")[0];
       const hasToday = summaries.some(s => s.date === todayStr);
       if (!hasToday) syncToday();
