@@ -79,10 +79,12 @@ export default function ProductsPage() {
       const { error } = await supabase.from("products").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Product updated");
+      logAction("update", "product", editingId, `Updated product ${form.name}`);
     } else {
-      const { error } = await supabase.from("products").insert(payload);
+      const { data, error } = await supabase.from("products").insert(payload).select().single();
       if (error) { toast.error("Failed to add product"); return; }
       toast.success("Product added");
+      logAction("create", "product", data?.id || "", `Added product ${form.name}`);
     }
     setDialogOpen(false);
     setEditingId(null);
