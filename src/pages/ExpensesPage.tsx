@@ -68,10 +68,12 @@ export default function ExpensesPage() {
       const { error } = await supabase.from("expenses").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Expense updated");
+      logAction("update", "expense", editingId, `Updated expense Rs ${form.amount}`);
     } else {
-      const { error } = await supabase.from("expenses").insert(payload);
+      const { data, error } = await supabase.from("expenses").insert(payload).select().single();
       if (error) { toast.error("Failed to add expense"); return; }
       toast.success("Expense added");
+      logAction("create", "expense", data?.id || "", `Expense Rs ${form.amount} - ${form.description || "No desc"}`);
     }
     setDialogOpen(false); setEditingId(null);
     setForm({ category_id: "", amount: 0, date: new Date().toISOString().split("T")[0], description: "", payment_method: "cash", reference_no: "" });
