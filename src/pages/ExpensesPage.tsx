@@ -50,11 +50,37 @@ export default function ExpensesPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = expenses.filter((e) =>
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all");
+
+  const getDateFilteredExpenses = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    return expenses.filter((e) => {
+      if (dateFilter === "today") return e.date === todayStr;
+      if (dateFilter === "week") {
+        const d = new Date(e.date);
+        const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+        return diff <= 7;
+      }
+      if (dateFilter === "month") {
+        const d = new Date(e.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  };
+
+  const filtered = getDateFilteredExpenses().filter((e) =>
     e.description?.toLowerCase().includes(search.toLowerCase()) || e.reference_no?.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalExpenses = filtered.reduce((s, e) => s + Number(e.amount), 0);
+
+  const categorySummary = categories.map((cat) => {
+    const catExpenses = filtered.filter((e) => e.category_id === cat.id);
+    const total = catExpenses.reduce((s, e) => s + Number(e.amount), 0);
+    return { name: cat.name, total };
+  }).filter((c) => c.total > 0).sort((a, b) => b.total - a.total);
 
   const handleSave = async () => {
     if (!form.amount) { toast.error("Amount is required"); return; }
