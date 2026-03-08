@@ -1,10 +1,11 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator, Cloud } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileSpreadsheet, Shield, LogOut, UserCircle, ShoppingCart, Receipt, CreditCard, Menu, X, Boxes, BarChart3, FileText, CalendarDays, BookOpen, ClipboardList, Wallet, StickyNote, BookMarked, Calculator, Cloud, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import LowStockAlerts from "@/components/LowStockAlerts";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
