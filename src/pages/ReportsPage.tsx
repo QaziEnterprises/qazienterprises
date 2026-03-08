@@ -178,6 +178,18 @@ export default function ReportsPage() {
         </Card>
       </div>
 
+      {/* Trend Chart */}
+      {!loading && summaries.length > 1 && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Daily Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DailyTrendChart data={summaries} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Daily Table */}
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Loading...</div>
