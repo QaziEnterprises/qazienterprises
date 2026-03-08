@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer } from "lucide-react";
+import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer, MessageCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { logAction } from "@/lib/auditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +32,7 @@ interface SaleInvoice {
 }
 
 export default function POSPage() {
+  const { role } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
@@ -130,6 +133,7 @@ export default function POSPage() {
     setInvoiceDialogOpen(true);
 
     toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
+    logAction("create", "sale", sale.id, `Sale ${sale.invoice_no} - Rs ${total} (${paymentMethod})`);
     setCart([]);
     setDiscount(0);
     setNotes("");
@@ -168,6 +172,13 @@ export default function POSPage() {
       </body></html>
     `);
     printWindow.document.close();
+  };
+
+  const handleWhatsApp = () => {
+    if (!invoiceData) return;
+    const items = invoiceData.items.map((item, i) => `${i + 1}. ${item.name} x${item.quantity} = Rs ${item.subtotal.toLocaleString()}`).join("\n");
+    const msg = `*Qazi Enterprises - Invoice*\n\nInvoice: ${invoiceData.invoice_no}\nDate: ${invoiceData.date}\nCustomer: ${invoiceData.customer_name}\n\n*Items:*\n${items}\n\nSubtotal: Rs ${invoiceData.subtotal.toLocaleString()}${invoiceData.discount > 0 ? `\nDiscount: -Rs ${invoiceData.discount.toLocaleString()}` : ""}\n*Total: Rs ${invoiceData.total.toLocaleString()}*\nPayment: ${invoiceData.payment_method.toUpperCase()} (${invoiceData.payment_status})\n\nThank you for your business!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   return (
@@ -293,9 +304,16 @@ export default function POSPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               Invoice Preview
-              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
-                <Printer className="h-4 w-4" /> Print
-              </Button>
+              <div className="flex gap-2">
+                {role === "admin" && (
+                  <Button size="sm" variant="outline" className="gap-2" onClick={handleWhatsApp}>
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" /> Print
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {invoiceData && (

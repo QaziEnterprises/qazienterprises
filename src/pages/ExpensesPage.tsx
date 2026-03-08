@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
 import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
+import { logAction } from "@/lib/auditLog";
 
 interface Expense {
   id: string; category_id: string | null; amount: number; date: string;
@@ -67,10 +68,12 @@ export default function ExpensesPage() {
       const { error } = await supabase.from("expenses").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Expense updated");
+      logAction("update", "expense", editingId, `Updated expense Rs ${form.amount}`);
     } else {
-      const { error } = await supabase.from("expenses").insert(payload);
+      const { data, error } = await supabase.from("expenses").insert(payload).select().single();
       if (error) { toast.error("Failed to add expense"); return; }
       toast.success("Expense added");
+      logAction("create", "expense", data?.id || "", `Expense Rs ${form.amount} - ${form.description || "No desc"}`);
     }
     setDialogOpen(false); setEditingId(null);
     setForm({ category_id: "", amount: 0, date: new Date().toISOString().split("T")[0], description: "", payment_method: "cash", reference_no: "" });
@@ -84,9 +87,12 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const exp = expenses.find(e => e.id === id);
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
-    toast.success("Expense deleted"); fetchData();
+    toast.success("Expense deleted");
+    logAction("delete", "expense", id, `Deleted expense Rs ${exp?.amount || 0}`);
+    fetchData();
   };
 
   const addCategory = async () => {

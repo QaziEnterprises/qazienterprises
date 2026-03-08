@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
 import { exportToExcel, importFromExcel, printAsPDF } from "@/lib/exportUtils";
+import { logAction } from "@/lib/auditLog";
 
 interface Product {
   id: string; name: string; sku: string | null; category_id: string | null;
@@ -78,10 +79,12 @@ export default function ProductsPage() {
       const { error } = await supabase.from("products").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Product updated");
+      logAction("update", "product", editingId, `Updated product ${form.name}`);
     } else {
-      const { error } = await supabase.from("products").insert(payload);
+      const { data, error } = await supabase.from("products").insert(payload).select().single();
       if (error) { toast.error("Failed to add product"); return; }
       toast.success("Product added");
+      logAction("create", "product", data?.id || "", `Added product ${form.name}`);
     }
     setDialogOpen(false);
     setEditingId(null);
@@ -96,9 +99,11 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const prod = products.find(p => p.id === id);
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
     toast.success("Product deleted");
+    logAction("delete", "product", id, `Deleted product ${prod?.name || ""}`);
     fetchData();
   };
 

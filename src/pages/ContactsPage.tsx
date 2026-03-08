@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { NumberInput } from "@/components/NumberInput";
+import { logAction } from "@/lib/auditLog";
 
 interface Contact {
   id: string;
@@ -78,10 +79,12 @@ export default function ContactsPage() {
       const { error } = await supabase.from("contacts").update(payload).eq("id", editingId);
       if (error) { toast.error("Failed to update"); return; }
       toast.success("Contact updated");
+      logAction("update", "contact", editingId, `Updated contact ${form.name}`);
     } else {
-      const { error } = await supabase.from("contacts").insert(payload);
+      const { data, error } = await supabase.from("contacts").insert(payload).select().single();
       if (error) { toast.error("Failed to add contact"); return; }
       toast.success("Contact added");
+      logAction("create", "contact", data?.id || "", `Added ${form.type} ${form.name}`);
     }
     setDialogOpen(false);
     setEditingId(null);
@@ -96,9 +99,11 @@ export default function ContactsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const contact = contacts.find(c => c.id === id);
     const { error } = await supabase.from("contacts").delete().eq("id", id);
     if (error) { toast.error("Failed to delete"); return; }
     toast.success("Contact deleted");
+    logAction("delete", "contact", id, `Deleted contact ${contact?.name || ""}`);
     fetchContacts();
   };
 

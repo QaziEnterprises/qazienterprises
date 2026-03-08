@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText, Download } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download, MessageCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface SaleItem {
 interface Customer { id: string; name: string; }
 
 export default function BillsPage() {
+  const { role } = useAuth();
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
@@ -88,6 +90,14 @@ export default function BillsPage() {
       </body></html>
     `);
     printWindow.document.close();
+  };
+
+  const handleWhatsApp = () => {
+    if (!selectedSale || saleItems.length === 0) return;
+    const customerName = getCustomerName(selectedSale.customer_id);
+    const items = saleItems.map((item, i) => `${i + 1}. ${item.product_name} x${item.quantity} = Rs ${Number(item.subtotal).toLocaleString()}`).join("\n");
+    const msg = `*Qazi Enterprises - Invoice*\n\nInvoice: ${selectedSale.invoice_no}\nDate: ${selectedSale.date}\nCustomer: ${customerName}\n\n*Items:*\n${items}\n\nSubtotal: Rs ${Number(selectedSale.subtotal).toLocaleString()}${Number(selectedSale.discount) > 0 ? `\nDiscount: -Rs ${Number(selectedSale.discount).toLocaleString()}` : ""}\n*Total: Rs ${Number(selectedSale.total).toLocaleString()}*\nPayment: ${selectedSale.payment_method.toUpperCase()} (${selectedSale.payment_status})\n\nThank you for your business!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
@@ -170,9 +180,16 @@ export default function BillsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               Invoice {selectedSale?.invoice_no}
-              <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
-                <Printer className="h-4 w-4" /> Print
-              </Button>
+              <div className="flex gap-2">
+                {role === "admin" && (
+                  <Button size="sm" variant="outline" className="gap-2" onClick={handleWhatsApp}>
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="gap-2" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" /> Print
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {selectedSale && (
