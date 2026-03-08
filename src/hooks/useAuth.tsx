@@ -23,10 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchRole = async (userId: string): Promise<"admin" | "user"> => {
     try {
-      const result = await Promise.race([
-        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-      ]);
+      const result = await retryQuery(
+        () => supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+        3, 1000
+      );
       if (result && typeof result === "object" && "data" in result) {
         return (result.data?.role as "admin" | "user") || "user";
       }
