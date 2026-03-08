@@ -133,6 +133,7 @@ export default function POSPage() {
     setInvoiceDialogOpen(true);
 
     toast.success(`Sale completed! Invoice: ${sale.invoice_no}`);
+    logAction("create", "sale", sale.id, `Sale ${sale.invoice_no} - Rs ${total} (${paymentMethod})`);
     setCart([]);
     setDiscount(0);
     setNotes("");
