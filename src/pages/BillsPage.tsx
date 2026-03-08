@@ -303,6 +303,24 @@ export default function BillsPage() {
           onSaved={refreshSales}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteSale} onOpenChange={(open) => { if (!open) setDeleteSale(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice {deleteSale?.invoice_no}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this invoice and all its line items. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
