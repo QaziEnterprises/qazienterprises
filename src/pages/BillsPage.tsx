@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil } from "lucide-react";
+import { Search, X, Printer, Eye, FileText, Download, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { exportToExcel, printAsPDF } from "@/lib/exportUtils";
 import { toast } from "sonner";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { logAction } from "@/lib/auditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import EditBillDialog from "@/components/EditBillDialog";
@@ -34,6 +36,8 @@ export default function BillsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editSale, setEditSale] = useState<SaleTransaction | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteSale, setDeleteSale] = useState<SaleTransaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,6 +114,25 @@ export default function BillsPage() {
 
   const statusColor = (s: string) => s === "paid" ? "default" : s === "partial" ? "secondary" : "destructive";
 
+  const handleDelete = async () => {
+    if (!deleteSale) return;
+    setDeleting(true);
+    try {
+      await supabase.from("sale_items").delete().eq("sale_id", deleteSale.id);
+      const { error } = await supabase.from("sale_transactions").delete().eq("id", deleteSale.id);
+      if (error) throw error;
+      logAction("delete", "sale", deleteSale.id, `Deleted invoice ${deleteSale.invoice_no} - Rs ${Number(deleteSale.total).toLocaleString()}`);
+      toast.success(`Invoice ${deleteSale.invoice_no} deleted`);
+      setDeleteSale(null);
+      refreshSales();
+    } catch (e) {
+      console.error("Delete bill error:", e);
+      toast.error("Failed to delete invoice");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -175,9 +198,14 @@ export default function BillsPage() {
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
                     {role === "admin" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditSale(s); setEditOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteSale(s)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </td>
                 </motion.tr>
@@ -275,6 +303,24 @@ export default function BillsPage() {
           onSaved={refreshSales}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteSale} onOpenChange={(open) => { if (!open) setDeleteSale(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice {deleteSale?.invoice_no}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this invoice and all its line items. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
