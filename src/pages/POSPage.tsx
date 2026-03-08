@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer } from "lucide-react";
+import { Search, X, ShoppingBag, Plus, Minus, Trash2, CreditCard, Printer, MessageCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { logAction } from "@/lib/auditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
