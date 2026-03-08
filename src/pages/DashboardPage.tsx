@@ -200,23 +200,6 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Low Stock Alerts — Legacy Inventory */}
-      {lowStockItems.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950/20 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
-            <h3 className="font-semibold text-orange-600">Inventory Low Stock — {lowStockItems.length} item(s)</h3>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {lowStockItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded border bg-background p-2 text-sm">
-                <span className="font-medium">{item.name}</span>
-                <span className="text-destructive font-bold">{item.quantity} left</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
 
       {/* Today's Summary */}
       <div className="mb-8">
