@@ -98,7 +98,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {isMobile && (
           <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
             <button onClick={() => setSidebarOpen(true)}><Menu className="h-5 w-5" /></button>
-            <span className="font-semibold">Qazi Enterprises</span>
+            <span className="font-semibold flex-1">Qazi Enterprises</span>
+            <LowStockAlerts />
           </div>
         )}
         <div className="p-4 lg:p-8">{children}</div>
