@@ -60,7 +60,28 @@ export default function PurchasesPage() {
     }
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => { fetchData(); }, []);
+
+  // Handle reorder from low stock alert
+  useEffect(() => {
+    const reorderId = searchParams.get("reorder");
+    const productName = searchParams.get("product");
+    const reorderQty = searchParams.get("qty");
+    const reorderPrice = searchParams.get("price");
+    if (reorderId && productName) {
+      setCart([{
+        product_id: reorderId,
+        product_name: decodeURIComponent(productName),
+        quantity: Number(reorderQty) || 10,
+        unit_price: Number(reorderPrice) || 0,
+        subtotal: (Number(reorderQty) || 10) * (Number(reorderPrice) || 0),
+      }]);
+      setDialogOpen(true);
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   const filtered = purchases.filter((p) =>
     p.reference_no?.toLowerCase().includes(search.toLowerCase()) ||
