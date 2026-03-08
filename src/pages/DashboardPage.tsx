@@ -177,18 +177,71 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Overview of your shop operations</p>
       </div>
 
+      {/* Cash Register Widget */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Link to="/cash-register">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-4">
+              {cashRegister ? (
+                <>
+                  {cashRegister.status === "open" ? <Unlock className="h-6 w-6 text-green-600 flex-shrink-0" /> : <Lock className="h-6 w-6 text-muted-foreground flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">Cash Register</span>
+                      <Badge variant={cashRegister.status === "open" ? "default" : "secondary"} className="text-[10px]">{cashRegister.status.toUpperCase()}</Badge>
+                    </div>
+                    <div className="flex gap-4 text-xs text-muted-foreground mt-1 flex-wrap">
+                      <span>Opening: Rs {cashRegister.opening_balance.toLocaleString()}</span>
+                      <span className="text-green-600">In: +Rs {cashRegister.cash_in.toLocaleString()}</span>
+                      <span className="text-destructive">Out: -Rs {cashRegister.cash_out.toLocaleString()}</span>
+                      <span className="font-medium text-foreground">Expected: Rs {cashRegister.expected_balance.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Wallet className="h-6 w-6 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <span className="font-semibold">Cash Register</span>
+                    <p className="text-xs text-muted-foreground">Drawer not opened today — click to open</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+      </motion.div>
+
       {/* Low Stock Alerts — Products DB */}
       {lowStockProducts.length > 0 && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h3 className="font-semibold text-destructive">Low Stock Alert — {lowStockProducts.length} product(s)</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <h3 className="font-semibold text-destructive">Low Stock Alert — {lowStockProducts.length} product(s)</h3>
+            </div>
+            <Link to="/products-db"><Button variant="outline" size="sm" className="text-xs">View Products</Button></Link>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {lowStockProducts.map((p) => (
-              <div key={p.name} className="flex items-center justify-between rounded border bg-background p-2 text-sm">
-                <span className="font-medium">{p.name}</span>
-                <span className="text-destructive font-bold">{p.quantity} / {p.alert_threshold}</span>
+              <div key={p.id} className="flex items-center justify-between rounded border bg-background p-2 text-sm gap-2">
+                <div className="min-w-0">
+                  <span className="font-medium block truncate">{p.name}</span>
+                  <span className="text-xs text-muted-foreground">Stock: {p.quantity} / Min: {p.alert_threshold}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs flex-shrink-0 h-7 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const reorderQty = Math.max(p.alert_threshold * 2 - p.quantity, p.alert_threshold);
+                    navigate(`/purchases?reorder=${p.id}&product=${encodeURIComponent(p.name)}&qty=${reorderQty}&price=${p.purchase_price}`);
+                  }}
+                >
+                  <ShoppingCart className="h-3 w-3 mr-1" /> Reorder
+                </Button>
               </div>
             ))}
           </div>
