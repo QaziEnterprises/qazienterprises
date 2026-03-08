@@ -177,40 +177,6 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Overview of your shop operations</p>
       </div>
 
-      {/* Cash Register Widget */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Link to="/cash-register">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="flex items-center gap-4 p-4">
-              {cashRegister ? (
-                <>
-                  {cashRegister.status === "open" ? <Unlock className="h-6 w-6 text-green-600 flex-shrink-0" /> : <Lock className="h-6 w-6 text-muted-foreground flex-shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">Cash Register</span>
-                      <Badge variant={cashRegister.status === "open" ? "default" : "secondary"} className="text-[10px]">{cashRegister.status.toUpperCase()}</Badge>
-                    </div>
-                    <div className="flex gap-4 text-xs text-muted-foreground mt-1 flex-wrap">
-                      <span>Opening: Rs {cashRegister.opening_balance.toLocaleString()}</span>
-                      <span className="text-green-600">In: +Rs {cashRegister.cash_in.toLocaleString()}</span>
-                      <span className="text-destructive">Out: -Rs {cashRegister.cash_out.toLocaleString()}</span>
-                      <span className="font-medium text-foreground">Expected: Rs {cashRegister.expected_balance.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Wallet className="h-6 w-6 text-muted-foreground flex-shrink-0" />
-                  <div>
-                    <span className="font-semibold">Cash Register</span>
-                    <p className="text-xs text-muted-foreground">Drawer not opened today — click to open</p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-      </motion.div>
 
       {/* Low Stock Alerts — Products DB */}
       {lowStockProducts.length > 0 && (
