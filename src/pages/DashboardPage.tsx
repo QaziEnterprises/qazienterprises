@@ -126,6 +126,19 @@ export default function DashboardPage() {
             .filter((p: any) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
             .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
+
+        // Process daily summaries for trend chart
+        if (dailySummaries && dailySummaries.length > 0) {
+          setDailyTrend(
+            dailySummaries.map((d: any) => ({
+              date: d.date,
+              totalSales: Number(d.total_sales || 0),
+              totalPurchases: Number(d.total_purchases || 0),
+              totalExpenses: Number(d.total_expenses || 0),
+              profit: Number(d.net_profit || 0),
+            }))
+          );
+        }
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       }
