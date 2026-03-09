@@ -41,9 +41,9 @@ export default function DailyTrendChart({ data }: { data: DailySummary[] }) {
           formatter={(value: number) => `Rs ${value.toLocaleString()}`}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="Sales" fill="hsl(142, 71%, 45%)" radius={[3, 3, 0, 0]} opacity={0.85} />
-        <Bar dataKey="Purchases" fill="hsl(217, 91%, 60%)" radius={[3, 3, 0, 0]} opacity={0.85} />
-        <Bar dataKey="Expenses" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} opacity={0.85} />
+        <Bar dataKey="Sales" fill="hsl(var(--chart-3))" radius={[3, 3, 0, 0]} opacity={0.85} />
+        <Bar dataKey="Purchases" fill="hsl(var(--info))" radius={[3, 3, 0, 0]} opacity={0.85} />
+        <Bar dataKey="Expenses" fill="hsl(var(--chart-4))" radius={[3, 3, 0, 0]} opacity={0.85} />
         <Line type="monotone" dataKey="Profit" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3 }} />
       </ComposedChart>
     </ResponsiveContainer>
