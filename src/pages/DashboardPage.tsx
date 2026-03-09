@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
+import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 const CHART_COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 11%)", "hsl(142, 71%, 45%)",
