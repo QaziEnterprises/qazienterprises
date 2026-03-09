@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
+import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 const CHART_COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 11%)", "hsl(142, 71%, 45%)",
@@ -48,6 +49,14 @@ interface TopDebtor {
   current_balance: number;
 }
 
+interface DailySummary {
+  date: string;
+  totalSales: number;
+  totalPurchases: number;
+  totalExpenses: number;
+  profit: number;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; quantity: number; alert_threshold: number; purchase_price: number }[]>([]);
@@ -57,9 +66,14 @@ export default function DashboardPage() {
   const [pendingPayments, setPendingPayments] = useState(0);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [topDebtors, setTopDebtors] = useState<TopDebtor[]>([]);
+  const [dailyTrend, setDailyTrend] = useState<DailySummary[]>([]);
 
   useEffect(() => {
     const todayStr = new Date().toISOString().split("T")[0];
+    const last14Days = new Date();
+    last14Days.setDate(last14Days.getDate() - 13);
+    const startDateStr = last14Days.toISOString().split("T")[0];
+    
     const fetchData = async () => {
       try {
         const [
@@ -71,6 +85,7 @@ export default function DashboardPage() {
           { data: pendingSales },
           { data: recent },
           { data: debtors },
+          { data: dailySummaries },
         ] = await Promise.all([
           retryQuery(() => supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr)),
           retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
@@ -80,6 +95,7 @@ export default function DashboardPage() {
           retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
           retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
+          retryQuery(() => supabase.from("daily_summaries").select("date, total_sales, total_purchases, total_expenses, net_profit").gte("date", startDateStr).order("date", { ascending: true })),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
@@ -110,6 +126,19 @@ export default function DashboardPage() {
             .filter((p: any) => p.alert_threshold && p.alert_threshold > 0 && (p.quantity || 0) <= p.alert_threshold)
             .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
+
+        // Process daily summaries for trend chart
+        if (dailySummaries && dailySummaries.length > 0) {
+          setDailyTrend(
+            dailySummaries.map((d: any) => ({
+              date: d.date,
+              totalSales: Number(d.total_sales || 0),
+              totalPurchases: Number(d.total_purchases || 0),
+              totalExpenses: Number(d.total_expenses || 0),
+              profit: Number(d.net_profit || 0),
+            }))
+          );
+        }
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       }
@@ -177,6 +206,23 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Daily Trend Chart */}
+      {dailyTrend.length > 0 && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                14-Day Business Trend
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DailyTrendChart data={dailyTrend} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Charts + Payment Breakdown */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
