@@ -207,6 +207,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Daily Trend Chart */}
+      {dailyTrend.length > 0 && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                14-Day Business Trend
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DailyTrendChart data={dailyTrend} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Charts + Payment Breakdown */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         {(() => {
