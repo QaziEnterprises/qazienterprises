@@ -297,11 +297,11 @@ export default function DashboardPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Cash</span><span className="font-medium">Rs {today.todayCash.toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">JazzCash</span><span className="font-medium text-accent">Rs {today.todayJC.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">EasyPaisa</span><span className="font-medium text-green-600">Rs {today.todayEP.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">EasyPaisa</span><span className="font-medium text-success">Rs {today.todayEP.toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bank Transfer</span><span className="font-medium text-primary">Rs {today.todayBT.toLocaleString()}</span></div>
             <div className="border-t my-1" />
             <div className="flex justify-between"><span className="text-muted-foreground">Avg Sale</span><span className="font-medium">{today.todaySalesCount > 0 ? `Rs ${Math.round(today.todaySales / today.todaySalesCount).toLocaleString()}` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-success" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
           </CardContent>
         </Card>
       </div>
