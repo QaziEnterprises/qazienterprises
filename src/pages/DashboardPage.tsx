@@ -16,8 +16,12 @@ import {
 import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 const CHART_COLORS = [
-  "hsl(38, 92%, 50%)", "hsl(222, 47%, 11%)", "hsl(142, 71%, 45%)",
-  "hsl(0, 72%, 51%)", "hsl(220, 14%, 70%)", "hsl(280, 60%, 50%)",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--info))",
 ];
 
 interface TodaySummary {
@@ -85,7 +89,9 @@ export default function DashboardPage() {
           { data: pendingSales },
           { data: recent },
           { data: debtors },
-          { data: dailySummaries },
+          { data: rangeSales },
+          { data: rangePurchases },
+          { data: rangeExpenses },
         ] = await Promise.all([
           retryQuery(() => supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr)),
           retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
@@ -95,7 +101,9 @@ export default function DashboardPage() {
           retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
           retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
-          retryQuery(() => supabase.from("daily_summaries").select("date, total_sales, total_purchases, total_expenses, net_profit").gte("date", startDateStr).order("date", { ascending: true })),
+          retryQuery(() => supabase.from("sale_transactions").select("date, total").gte("date", startDateStr).lte("date", todayStr)),
+          retryQuery(() => supabase.from("purchases").select("date, total").gte("date", startDateStr).lte("date", todayStr)),
+          retryQuery(() => supabase.from("expenses").select("date, amount").gte("date", startDateStr).lte("date", todayStr)),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
@@ -127,20 +135,34 @@ export default function DashboardPage() {
             .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
 
-        // Process daily summaries for trend chart
-        if (dailySummaries && dailySummaries.length > 0) {
-          setDailyTrend(
-            dailySummaries.map((d: any) => ({
-              date: d.date,
-              totalSales: Number(d.total_sales || 0),
-              totalPurchases: Number(d.total_purchases || 0),
-              totalExpenses: Number(d.total_expenses || 0),
-              profit: Number(d.net_profit || 0),
-            }))
-          );
-        }
+        // Process daily trend (last 14 days) directly from transactions
+        const dateMap = new Map<string, DailySummary>();
+        const getOrCreate = (date: string): DailySummary => {
+          if (!dateMap.has(date)) dateMap.set(date, { date, totalSales: 0, totalPurchases: 0, totalExpenses: 0, profit: 0 });
+          return dateMap.get(date)!;
+        };
+
+        (rangeSales || []).forEach((s: any) => {
+          const d = getOrCreate(s.date);
+          d.totalSales += Number(s.total || 0);
+        });
+        (rangePurchases || []).forEach((p: any) => {
+          const d = getOrCreate(p.date);
+          d.totalPurchases += Number(p.total || 0);
+        });
+        (rangeExpenses || []).forEach((e: any) => {
+          const d = getOrCreate(e.date);
+          d.totalExpenses += Number(e.amount || 0);
+        });
+
+        dateMap.forEach((d) => {
+          d.profit = d.totalSales - d.totalPurchases - d.totalExpenses;
+        });
+
+        setDailyTrend(Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date)));
       } catch (e) {
         console.error("Dashboard fetch error:", e);
+        setDailyTrend([]);
       }
     };
     fetchData();
@@ -262,9 +284,9 @@ export default function DashboardPage() {
                 <YAxis fontSize={11} allowDecimals={false} />
                 <Tooltip />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  <Cell fill="hsl(142, 71%, 45%)" />
-                  <Cell fill="hsl(220, 60%, 55%)" />
-                  <Cell fill="hsl(0, 72%, 51%)" />
+                  <Cell fill="hsl(var(--chart-3))" />
+                  <Cell fill="hsl(var(--info))" />
+                  <Cell fill="hsl(var(--chart-4))" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -275,11 +297,11 @@ export default function DashboardPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Cash</span><span className="font-medium">Rs {today.todayCash.toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">JazzCash</span><span className="font-medium text-accent">Rs {today.todayJC.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">EasyPaisa</span><span className="font-medium text-green-600">Rs {today.todayEP.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">EasyPaisa</span><span className="font-medium text-success">Rs {today.todayEP.toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bank Transfer</span><span className="font-medium text-primary">Rs {today.todayBT.toLocaleString()}</span></div>
             <div className="border-t my-1" />
             <div className="flex justify-between"><span className="text-muted-foreground">Avg Sale</span><span className="font-medium">{today.todaySalesCount > 0 ? `Rs ${Math.round(today.todaySales / today.todaySalesCount).toLocaleString()}` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-green-600" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Margin</span><span className={`font-medium ${today.todaySales > 0 && today.todayProfit >= 0 ? "text-success" : "text-destructive"}`}>{today.todaySales > 0 ? `${((today.todayProfit / today.todaySales) * 100).toFixed(1)}%` : "—"}</span></div>
           </CardContent>
         </Card>
       </div>
