@@ -16,8 +16,12 @@ import {
 import DailyTrendChart from "@/components/reports/DailyTrendChart";
 
 const CHART_COLORS = [
-  "hsl(38, 92%, 50%)", "hsl(222, 47%, 11%)", "hsl(142, 71%, 45%)",
-  "hsl(0, 72%, 51%)", "hsl(220, 14%, 70%)", "hsl(280, 60%, 50%)",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--info))",
 ];
 
 interface TodaySummary {
