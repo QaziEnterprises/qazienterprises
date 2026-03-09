@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [pendingPayments, setPendingPayments] = useState(0);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [topDebtors, setTopDebtors] = useState<TopDebtor[]>([]);
+  const [dailyTrend, setDailyTrend] = useState<DailySummary[]>([]);
 
   useEffect(() => {
     const todayStr = new Date().toISOString().split("T")[0];
