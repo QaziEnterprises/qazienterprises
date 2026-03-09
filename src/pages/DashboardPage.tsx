@@ -135,20 +135,34 @@ export default function DashboardPage() {
             .map((p: any) => ({ id: p.id, name: p.name, quantity: p.quantity || 0, alert_threshold: p.alert_threshold || 0, purchase_price: p.purchase_price || 0 }))
         );
 
-        // Process daily summaries for trend chart
-        if (dailySummaries && dailySummaries.length > 0) {
-          setDailyTrend(
-            dailySummaries.map((d: any) => ({
-              date: d.date,
-              totalSales: Number(d.total_sales || 0),
-              totalPurchases: Number(d.total_purchases || 0),
-              totalExpenses: Number(d.total_expenses || 0),
-              profit: Number(d.net_profit || 0),
-            }))
-          );
-        }
+        // Process daily trend (last 14 days) directly from transactions
+        const dateMap = new Map<string, DailySummary>();
+        const getOrCreate = (date: string): DailySummary => {
+          if (!dateMap.has(date)) dateMap.set(date, { date, totalSales: 0, totalPurchases: 0, totalExpenses: 0, profit: 0 });
+          return dateMap.get(date)!;
+        };
+
+        (rangeSales || []).forEach((s: any) => {
+          const d = getOrCreate(s.date);
+          d.totalSales += Number(s.total || 0);
+        });
+        (rangePurchases || []).forEach((p: any) => {
+          const d = getOrCreate(p.date);
+          d.totalPurchases += Number(p.total || 0);
+        });
+        (rangeExpenses || []).forEach((e: any) => {
+          const d = getOrCreate(e.date);
+          d.totalExpenses += Number(e.amount || 0);
+        });
+
+        dateMap.forEach((d) => {
+          d.profit = d.totalSales - d.totalPurchases - d.totalExpenses;
+        });
+
+        setDailyTrend(Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date)));
       } catch (e) {
         console.error("Dashboard fetch error:", e);
+        setDailyTrend([]);
       }
     };
     fetchData();
