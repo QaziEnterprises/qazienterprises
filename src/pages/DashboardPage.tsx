@@ -89,7 +89,9 @@ export default function DashboardPage() {
           { data: pendingSales },
           { data: recent },
           { data: debtors },
-          { data: dailySummaries },
+          { data: rangeSales },
+          { data: rangePurchases },
+          { data: rangeExpenses },
         ] = await Promise.all([
           retryQuery(() => supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr)),
           retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
@@ -99,7 +101,9 @@ export default function DashboardPage() {
           retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
           retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
-          retryQuery(() => supabase.from("daily_summaries").select("date, total_sales, total_purchases, total_expenses, net_profit").gte("date", startDateStr).order("date", { ascending: true })),
+          retryQuery(() => supabase.from("sale_transactions").select("date, total").gte("date", startDateStr).lte("date", todayStr)),
+          retryQuery(() => supabase.from("purchases").select("date, total").gte("date", startDateStr).lte("date", todayStr)),
+          retryQuery(() => supabase.from("expenses").select("date, amount").gte("date", startDateStr).lte("date", todayStr)),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
