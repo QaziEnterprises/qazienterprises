@@ -70,6 +70,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const todayStr = new Date().toISOString().split("T")[0];
+    const last14Days = new Date();
+    last14Days.setDate(last14Days.getDate() - 13);
+    const startDateStr = last14Days.toISOString().split("T")[0];
+    
     const fetchData = async () => {
       try {
         const [
@@ -81,6 +85,7 @@ export default function DashboardPage() {
           { data: pendingSales },
           { data: recent },
           { data: debtors },
+          { data: dailySummaries },
         ] = await Promise.all([
           retryQuery(() => supabase.from("sale_transactions").select("total, payment_method").eq("date", todayStr)),
           retryQuery(() => supabase.from("purchases").select("total").eq("date", todayStr)),
@@ -90,6 +95,7 @@ export default function DashboardPage() {
           retryQuery(() => supabase.from("sale_transactions").select("total").eq("payment_status", "due")),
           retryQuery(() => supabase.from("sale_transactions").select("id, invoice_no, total, payment_method, date, customer_type").order("created_at", { ascending: false }).limit(5)),
           supabase.from("contacts").select("id, name, current_balance").gt("current_balance", 0).order("current_balance", { ascending: false }).limit(5),
+          retryQuery(() => supabase.from("daily_summaries").select("date, total_sales, total_purchases, total_expenses, net_profit").gte("date", startDateStr).order("date", { ascending: true })),
         ]);
 
         const salesTotal = (todaySales || []).reduce((s, r) => s + Number(r.total || 0), 0);
