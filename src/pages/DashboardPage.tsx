@@ -284,9 +284,9 @@ export default function DashboardPage() {
                 <YAxis fontSize={11} allowDecimals={false} />
                 <Tooltip />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  <Cell fill="hsl(142, 71%, 45%)" />
-                  <Cell fill="hsl(220, 60%, 55%)" />
-                  <Cell fill="hsl(0, 72%, 51%)" />
+                  <Cell fill="hsl(var(--chart-3))" />
+                  <Cell fill="hsl(var(--info))" />
+                  <Cell fill="hsl(var(--chart-4))" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
