@@ -49,6 +49,14 @@ interface TopDebtor {
   current_balance: number;
 }
 
+interface DailySummary {
+  date: string;
+  totalSales: number;
+  totalPurchases: number;
+  totalExpenses: number;
+  profit: number;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; quantity: number; alert_threshold: number; purchase_price: number }[]>([]);
